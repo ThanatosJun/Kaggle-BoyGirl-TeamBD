@@ -502,6 +502,24 @@ def d1_oof_threshold_search(final_oof_probs, y_train_full):
     logging.info(f"D1 validation passed! Optimal Threshold: {optimal_threshold:.2f}, Accuracy: {best_acc:.4f}")
     return optimal_threshold
 
+def d2_probability_translation(final_test_probs, optimal_threshold):
+    """
+    Task D2: Probability Translation & Hard Labeling
+    """
+    logging.info("Starting D2: Probability Translation & Hard Labeling")
+    
+    test_binary_predictions = (final_test_probs >= optimal_threshold).astype(int)
+    
+    # Validation criteria: Only 0 and 1 allowed
+    unique_vals = np.unique(test_binary_predictions)
+    for val in unique_vals:
+        if val not in [0, 1]:
+            logging.fatal(f"D2 Validation Failed: test_binary_predictions contains invalid value {val}")
+            sys.exit(1)
+            
+    logging.info(f"D2 validation passed! Translated probabilities to hard labels {unique_vals}")
+    return test_binary_predictions
+
 if __name__ == "__main__":
     df_a1 = a1_unified_ingestion()
     df_a2 = a2_schema_coercion(df_a1)
@@ -519,5 +537,6 @@ if __name__ == "__main__":
     
     final_oof_probs, final_test_probs = run_module_c_engine(global_train, global_test, kfold_dict, y_target)
     optimal_threshold = d1_oof_threshold_search(final_oof_probs, y_target)
+    test_binary_predictions = d2_probability_translation(final_test_probs, optimal_threshold)
     
-    logging.info("Pipeline executed down to D1. Remaining Module D steps to be integrated.")
+    logging.info("Pipeline executed down to D2. Remaining final D3 submission formatting.")
