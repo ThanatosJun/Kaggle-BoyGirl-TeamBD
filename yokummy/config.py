@@ -9,7 +9,7 @@ DATA_PATH = 'data/raw/train.csv'
 # --- Preprocessing ---
 # Thresholds for outlier detection
 HEIGHT_THRESHOLD = 200
-WEIGHT_THRESHOLD = 150
+WEIGHT_THRESHOLD = 120
 
 # Imputation Strategies
 # Numeric: 'mean', 'median', 'most_frequent', 'constant'
