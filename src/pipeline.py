@@ -3,8 +3,7 @@ import logging
 import sys
 from sklearn.model_selection import StratifiedKFold
 from sklearn.linear_model import LinearRegression
-import sys
-from sklearn.model_selection import StratifiedKFold
+from sklearn.feature_extraction.text import TfidfVectorizer
 import sys
 
 # Configure logging
@@ -274,6 +273,39 @@ def b3_noise_pruning(train_df, test_df):
     logging.info("B3 validation passed: Noise pruned and continuous signals clipped.")
     return train_ft, test_ft
 
+def b4_text_vectorization(train_df, test_df):
+    """
+    Task B4: Text Rules & TF-IDF Vectorization
+    """
+    logging.info("Starting B4: Text Rules & TF-IDF Vectorization")
+    
+    # 1. Rule-based dictionaries
+    def extract_rules(df):
+        rules = pd.DataFrame(index=df.index)
+        intro = df['self_intro'].astype(str).str.lower()
+        rules['has_male_word'] = intro.str.contains('fuck|cool', regex=True).astype(int)
+        rules['has_soft_symbol'] = intro.str.contains('~|qq', regex=True).astype(int)
+        return rules
+        
+    train_rules = extract_rules(train_df)
+    test_rules = extract_rules(test_df)
+    
+    # 2. TF-IDF Vectorization
+    tfidf = TfidfVectorizer(analyzer='char_wb', ngram_range=(2, 4), max_features=1000)
+    train_text = train_df['self_intro'].fillna('')
+    test_text = test_df['self_intro'].fillna('')
+    
+    train_tfidf = tfidf.fit_transform(train_text)
+    test_tfidf = tfidf.transform(test_text)
+    
+    # Validation criteria: tfidf columns <= 1000
+    if train_tfidf.shape[1] > 1000:
+        logging.fatal(f"B4 Validation Failed: TF-IDF feature space length ({train_tfidf.shape[1]}) exceeds 1000.")
+        sys.exit(1)
+        
+    logging.info("B4 validation passed: Rule-based and spatial text features extracted.")
+    return train_rules, test_rules, train_tfidf, test_tfidf
+
 if __name__ == "__main__":
     df_a1 = a1_unified_ingestion()
     df_a2 = a2_schema_coercion(df_a1)
@@ -283,3 +315,4 @@ if __name__ == "__main__":
     train_b1, test_b1 = b1_anthropometric_features(train_df, test_df)
     train_b2, test_b2 = b2_regression_residual(train_b1, test_b1)
     train_b3, test_b3 = b3_noise_pruning(train_b2, test_b2)
+    train_b4_rules, test_b4_rules, train_b4_tfidf, test_b4_tfidf = b4_text_vectorization(train_b3, test_b3)
