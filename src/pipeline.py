@@ -1,6 +1,7 @@
 import pandas as pd
 import logging
 import sys
+import scipy.sparse as sp
 from sklearn.model_selection import StratifiedKFold
 from sklearn.linear_model import LinearRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -306,6 +307,44 @@ def b4_text_vectorization(train_df, test_df):
     logging.info("B4 validation passed: Rule-based and spatial text features extracted.")
     return train_rules, test_rules, train_tfidf, test_tfidf
 
+def b5_feature_fusion(train_tab, test_tab, train_rules, test_rules, train_tfidf, test_tfidf, original_train_len):
+    """
+    Task B5: Multimodal Feature Fusion & Sync Node
+    """
+    logging.info("Starting B5: Multimodal Feature Fusion & Sync Node")
+    
+    # Needs to drop non-numeric structural columns from tabular data before fusion
+    cols_to_exclude = ['id', 'is_train', 'gender', 'star_sign', 'phone_os', 'self_intro']
+    
+    def process_tabular(df):
+        num_df = df.drop(columns=[c for c in cols_to_exclude if c in df.columns], errors='ignore')
+        # One-hot encode categorical features if needed, but for now we just convert to sparse
+        # Actually star_sign and phone_os should probably be dummified.
+        # But instructions didn't explicitly mention OHE in B5, although A4 cleaned them.
+        # Let's do simple pd.get_dummies for remaining object types just in case
+        num_df = pd.get_dummies(num_df)
+        return num_df
+        
+    train_num = process_tabular(train_tab)
+    test_num = process_tabular(test_tab)
+    
+    # Align train and test columns
+    train_num, test_num = train_num.align(test_num, join='left', axis=1, fill_value=0)
+    
+    train_dense = pd.concat([train_num, train_rules], axis=1).astype(float)
+    test_dense = pd.concat([test_num, test_rules], axis=1).astype(float)
+    
+    global_feature_matrix_train = sp.hstack([sp.csr_matrix(train_dense.values), train_tfidf])
+    global_feature_matrix_test = sp.hstack([sp.csr_matrix(test_dense.values), test_tfidf])
+    
+    # Validation criteria: Row count must strictly equal clean_train_df
+    if global_feature_matrix_train.shape[0] != original_train_len:
+        logging.fatal(f"B5 Validation Failed: Fused matrix rows ({global_feature_matrix_train.shape[0]}) != original rows ({original_train_len})")
+        sys.exit(1)
+        
+    logging.info(f"B5 validation passed: Multimodal features fused. Train shape: {global_feature_matrix_train.shape}")
+    return global_feature_matrix_train, global_feature_matrix_test
+
 if __name__ == "__main__":
     df_a1 = a1_unified_ingestion()
     df_a2 = a2_schema_coercion(df_a1)
@@ -316,3 +355,4 @@ if __name__ == "__main__":
     train_b2, test_b2 = b2_regression_residual(train_b1, test_b1)
     train_b3, test_b3 = b3_noise_pruning(train_b2, test_b2)
     train_b4_rules, test_b4_rules, train_b4_tfidf, test_b4_tfidf = b4_text_vectorization(train_b3, test_b3)
+    global_train, global_test = b5_feature_fusion(train_b3, test_b3, train_b4_rules, test_b4_rules, train_b4_tfidf, test_b4_tfidf, len(train_df))
