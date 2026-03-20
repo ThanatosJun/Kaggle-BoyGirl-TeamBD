@@ -67,6 +67,34 @@ def a2_schema_coercion(df):
     logging.info("A2 validation passed. Schema aligned.")
     return df
 
+def a3_boundary_clipping(df):
+    """
+    Task A3: Physical Boundary Clipping
+    """
+    logging.info("Starting A3: Physical Boundary Clipping")
+    
+    if 'height' in df.columns:
+        df['height'] = df['height'].clip(lower=140, upper=210)
+    if 'weight' in df.columns:
+        df['weight'] = df['weight'].clip(lower=35, upper=150)
+        
+    # Validation Criteria
+    if 'height' in df.columns:
+        h_max, h_min = df['height'].max(), df['height'].min()
+        if h_max > 210 or h_min < 140:
+            logging.fatal(f"A3 Validation Failed: height bounds exceeded ({h_min}, {h_max})")
+            sys.exit(1)
+            
+    if 'weight' in df.columns:
+        w_max, w_min = df['weight'].max(), df['weight'].min()
+        if w_max > 150 or w_min < 35:
+            logging.fatal(f"A3 Validation Failed: weight bounds exceeded ({w_min}, {w_max})")
+            sys.exit(1)
+            
+    logging.info("A3 validation passed. Physical boundaries clipped.")
+    return df
+
 if __name__ == "__main__":
     df_a1 = a1_unified_ingestion()
     df_a2 = a2_schema_coercion(df_a1)
+    df_a3 = a3_boundary_clipping(df_a2)
