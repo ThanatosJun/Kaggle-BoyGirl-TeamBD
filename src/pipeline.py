@@ -2,8 +2,12 @@ import pandas as pd
 import logging
 import sys
 import scipy.sparse as sp
+import numpy as np
 from sklearn.model_selection import StratifiedKFold
 from sklearn.linear_model import LinearRegression
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import KNNImputer
 from sklearn.feature_extraction.text import TfidfVectorizer
 import sys
 
@@ -345,6 +349,32 @@ def b5_feature_fusion(train_tab, test_tab, train_rules, test_rules, train_tfidf,
     logging.info(f"B5 validation passed: Multimodal features fused. Train shape: {global_feature_matrix_train.shape}")
     return global_feature_matrix_train, global_feature_matrix_test
 
+def c1_infold_imputation(X_train_fold, X_val_fold, X_test):
+    """
+    Task C1: In-Fold Standardization & KNN Imputation
+    Takes sparse matrices or numpy arrays, returns dense imputed matrices.
+    """
+    if sp.issparse(X_train_fold): X_train_fold = X_train_fold.toarray()
+    if sp.issparse(X_val_fold): X_val_fold = X_val_fold.toarray()
+    if sp.issparse(X_test): X_test = X_test.toarray()
+    
+    scaler = StandardScaler()
+    X_train_sc = scaler.fit_transform(X_train_fold)
+    X_val_sc = scaler.transform(X_val_fold)
+    X_test_sc = scaler.transform(X_test)
+    
+    imputer = KNNImputer(n_neighbors=5)
+    X_train_imp = imputer.fit_transform(X_train_sc)
+    X_val_imp = imputer.transform(X_val_sc)
+    X_test_imp = imputer.transform(X_test_sc)
+    
+    # Validation criteria: no NaNs remaining
+    if np.isnan(X_train_imp).sum() > 0 or np.isnan(X_val_imp).sum() > 0 or np.isnan(X_test_imp).sum() > 0:
+        logging.fatal("C1 Validation Failed: NaN values remain after KNN Imputation")
+        sys.exit(1)
+        
+    return X_train_imp, X_val_imp, X_test_imp
+    
 if __name__ == "__main__":
     df_a1 = a1_unified_ingestion()
     df_a2 = a2_schema_coercion(df_a1)
@@ -356,3 +386,5 @@ if __name__ == "__main__":
     train_b3, test_b3 = b3_noise_pruning(train_b2, test_b2)
     train_b4_rules, test_b4_rules, train_b4_tfidf, test_b4_tfidf = b4_text_vectorization(train_b3, test_b3)
     global_train, global_test = b5_feature_fusion(train_b3, test_b3, train_b4_rules, test_b4_rules, train_b4_tfidf, test_b4_tfidf, len(train_df))
+    
+    logging.info("Pipeline executed down to B5. Module C & D execution loop to be integrated.")
