@@ -94,7 +94,31 @@ def a3_boundary_clipping(df):
     logging.info("A3 validation passed. Physical boundaries clipped.")
     return df
 
+def a4_text_normalization(df):
+    """
+    Task A4: Text Normalization Baseline
+    """
+    logging.info("Starting A4: Text Normalization Baseline")
+    
+    cat_cols = ['star_sign', 'phone_os', 'self_intro']
+    
+    for col in cat_cols:
+        if col in df.columns:
+            # Convert to string first to apply str methods, then replace empty strings with NaN
+            df[col] = df[col].astype(str).str.strip().replace({'': pd.NA, 'nan': pd.NA, 'None': pd.NA})
+            
+    # Validation Criteria
+    if 'star_sign' in df.columns:
+        unique_signs = df['star_sign'].dropna().unique()
+        if len(unique_signs) > 12:
+            logging.fatal(f"A4 Validation Failed: 'star_sign' has {len(unique_signs)} unique values (max 12 expected): {unique_signs}")
+            sys.exit(1)
+            
+    logging.info("A4 validation passed. Text normalized.")
+    return df
+
 if __name__ == "__main__":
     df_a1 = a1_unified_ingestion()
     df_a2 = a2_schema_coercion(df_a1)
     df_a3 = a3_boundary_clipping(df_a2)
+    df_a4 = a4_text_normalization(df_a3)
