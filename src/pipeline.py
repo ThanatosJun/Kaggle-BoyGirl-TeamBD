@@ -44,5 +44,29 @@ def a1_unified_ingestion():
     logging.info(f"A1 validation passed. Merged dataframe has {len(merged_dataframe)} rows.")
     return merged_dataframe
 
+def a2_schema_coercion(df):
+    """
+    Task A2: Schema Coercion & Anomaly Melting
+    """
+    logging.info("Starting A2: Schema Coercion & Anomaly Melting")
+    
+    # Target columns that should be float64
+    numeric_cols = ['yt', 'height', 'weight', 'sleepiness', 'iq', 'fb_friends']
+    
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+            
+    # Validation Criteria
+    for col in ['yt', 'height', 'weight']:
+        if col in df.columns:
+            if not pd.api.types.is_float_dtype(df[col]):
+                logging.fatal(f"A2 Validation Failed: Column '{col}' is not float64. Found {df[col].dtype}")
+                sys.exit(1)
+                
+    logging.info("A2 validation passed. Schema aligned.")
+    return df
+
 if __name__ == "__main__":
-    df = a1_unified_ingestion()
+    df_a1 = a1_unified_ingestion()
+    df_a2 = a2_schema_coercion(df_a1)
