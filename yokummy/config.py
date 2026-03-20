@@ -5,6 +5,7 @@ SEED = 42
 
 # --- Data Loading ---
 DATA_PATH = 'data/raw/train.csv'
+TEST_DATA_PATH = 'data/raw/test.csv' # Assuming the test file is here. If not, user needs to update.
 
 # --- Preprocessing ---
 # Thresholds for outlier detection

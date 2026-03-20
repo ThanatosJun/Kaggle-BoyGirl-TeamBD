@@ -65,9 +65,12 @@ print("Missing values after cleaning:", df.isnull().sum().sum())
 # 4. Feature Engineering
 print("\n--- Feature Engineering ---")
 # Encode Categorical Variables
-le = LabelEncoder()
+le_map = {}
 for col in cat_cols:
+    le = LabelEncoder()
+    # Fit on strings
     df[col] = le.fit_transform(df[col].astype(str))
+    le_map[col] = le
     print(f"Encoded {col}")
 
 X = df.drop('gender', axis=1)
@@ -196,5 +199,126 @@ result_path = os.path.join(run_dir, "result.json")
 with open(result_path, "w") as f:
     json.dump(results, f, indent=4)
 print(f"Results saved to {result_path}")
+
+
+# 10. Generate Submission File (Prediction on Test Data)
+print("\n--- Generating Submission ---")
+try:
+    if os.path.exists(config.TEST_DATA_PATH):
+        print(f"Loading test data from: {config.TEST_DATA_PATH}")
+        test_df = pd.read_csv(config.TEST_DATA_PATH)
+    else:
+        # Fallback: try to find a file starting with 'test' in data/raw
+        import glob
+        test_files = glob.glob('data/raw/test*.csv')
+        if test_files:
+            test_df = pd.read_csv(test_files[0])
+            print(f"Loading test data from found file: {test_files[0]}")
+        else:
+            raise FileNotFoundError("No test CSV found.")
+
+    test_ids = test_df['id'] # Keep IDs for submission
+
+    # --- Preprocess Test Data (Mirroring Train Data) ---
+    if 'id' in test_df.columns:
+        test_df_clean = test_df.drop('id', axis=1)
+    else:
+        test_df_clean = test_df.copy()
+
+    # Convert 'yt' to numeric
+    test_df_clean['yt'] = pd.to_numeric(test_df_clean['yt'], errors='coerce')
+
+    # Handle Outliers (Infinity and Thresholds)
+    # Cast to float first to ensure replace works on object cols if mixed
+    # And convert large numbers (larger than float32 max) to NaN
+    
+    # Force numeric columns to be float
+    cols_to_numeric = ['height', 'weight', 'fb_friends', 'iq', 'sleepiness']
+    for c in cols_to_numeric:
+        if c in test_df_clean.columns:
+            # Handle mixed types explicitly, replace None or empty string first if needed
+            test_df_clean[c] = pd.to_numeric(test_df_clean[c], errors='coerce')
+            
+    # Explicitly check for large values
+    for c in cols_to_numeric:
+        if c in test_df_clean.columns:
+             # Float32 max is ~3.4e38, Python float goes up to ~1.7e308
+             # But sklearn might warn/error on float32/64 overflow if value is too huge
+             # Let's cap at a reasonable large number or treat as outlier
+             # Assuming threshold config are reasonable
+             pass
+
+    test_df_clean.replace([np.inf, -np.inf], np.nan, inplace=True)
+    
+    if 'height' in test_df_clean.columns:
+        test_df_clean.loc[test_df_clean['height'] > config.HEIGHT_THRESHOLD, 'height'] = np.nan
+    if 'weight' in test_df_clean.columns:
+        test_df_clean.loc[test_df_clean['weight'] > config.WEIGHT_THRESHOLD, 'weight'] = np.nan
+
+    # Impute Missing Values
+    # First ensure we don't have extremely large values that survived.
+    # Replace anything > 1e12 with NaN as a safety catch-all for submission errors
+    # Apply only to numeric columns to avoid TypeError with strings
+    numeric_cols_mask = test_df_clean.select_dtypes(include=[np.number]).columns
+    test_df_clean[numeric_cols_mask] = test_df_clean[numeric_cols_mask].mask(test_df_clean[numeric_cols_mask] > 1e12, np.nan)
+
+    # Impute Missing Values (using the fitting from Train data)
+    num_cols_test = [c for c in num_cols if c in test_df_clean.columns]
+    if num_cols_test:
+        test_df_clean[num_cols_test] = imputer_num.transform(test_df_clean[num_cols_test])
+    
+    cat_cols_test = [c for c in cat_cols if c in test_df_clean.columns]
+    if cat_cols_test:
+        test_df_clean[cat_cols_test] = imputer_cat.transform(test_df_clean[cat_cols_test])
+
+    # Feature Engineering (Encoding)
+    for col, le in le_map.items():
+        if col in test_df_clean.columns:
+            # Handle unseen labels by mapping them to known classes (e.g., first class)
+            # or converting everything to string first.
+            test_vals = test_df_clean[col].astype(str)
+            
+            # Identify unseen labels
+            known_labels = set(le.classes_)
+            unknown_mask = ~test_vals.isin(known_labels)
+            
+            if unknown_mask.any():
+                # Replace unknown with the mode (most frequent from training) or a placeholder
+                # Here we use the first known class as a fallback
+                fallback_label = le.classes_[0]
+                test_vals[unknown_mask] = fallback_label
+            
+            test_df_clean[col] = le.transform(test_vals)
+
+    # Ensure column order matches training, filling missing with 0 if necessary
+    # (Though imputation should have handled missing, features might be dropped)
+    # X.columns is from training data
+    
+    # Align columns: Add missing columns
+    for col in X.columns:
+        if col not in test_df_clean.columns:
+            test_df_clean[col] = 0 # Or NaN, depending on imputation logic
+            
+    # Drop extra columns
+    test_df_clean = test_df_clean[X.columns]
+
+    # Predict
+    predictions = rf.predict(test_df_clean)
+
+    # Create Submission DataFrame
+    submission = pd.DataFrame({
+        'id': test_ids,
+        'gender': predictions
+    })
+
+    # Save Submission
+    submission_path = os.path.join(run_dir, "submission.csv")
+    submission.to_csv(submission_path, index=False)
+    print(f"Submission file saved to: {submission_path}")
+
+except FileNotFoundError:
+    print("Test file not found. Skipping submission generation.")
+except Exception as e:
+    print(f"Error generating submission: {e}")
 
 print("\nDone!")
