@@ -5,11 +5,30 @@ import joblib
 import json
 from datetime import datetime
 from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import LabelEncoder
+# Consolidated sklearn imports
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.linear_model import LogisticRegression, Lasso
+from sklearn.feature_selection import RFECV, RFE, SelectFromModel, SelectKBest, f_classif
+from sklearn.impute import SimpleImputer, KNNImputer
+from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler, RobustScaler
 from sklearn.metrics import accuracy_score, classification_report
 import config  # Import configuration
+
+# Optional imports for extra models
+try:
+    from xgboost import XGBClassifier
+except ImportError:
+    XGBClassifier = None
+
+try:
+    from lightgbm import LGBMClassifier
+except ImportError:
+    LGBMClassifier = None
+
+try:
+    from catboost import CatBoostClassifier
+except ImportError:
+    CatBoostClassifier = None
 
 # Use Seed from config
 np.random.seed(config.SEED)
@@ -51,14 +70,34 @@ if 'gender' in num_cols: num_cols.remove('gender') # Don't impute target if nume
 cat_cols = df.select_dtypes(include='object').columns
 
 # Numeric Imputer
-imputer_num = SimpleImputer(strategy=config.NUMERIC_IMPUTER_STRATEGY)
+print(f"Imputing numeric values with strategy: {config.NUMERIC_IMPUTER_STRATEGY}")
+if config.NUMERIC_IMPUTER_STRATEGY == 'knn':
+    imputer_num = KNNImputer(n_neighbors=5)
+else:
+    imputer_num = SimpleImputer(strategy=config.NUMERIC_IMPUTER_STRATEGY)
+    
 if num_cols:
     df[num_cols] = imputer_num.fit_transform(df[num_cols])
 
 # Categorical Imputer
+print(f"Imputing categorical values with strategy: {config.CATEGORICAL_IMPUTER_STRATEGY}")
 imputer_cat = SimpleImputer(strategy=config.CATEGORICAL_IMPUTER_STRATEGY)
 if len(cat_cols) > 0:
     df[cat_cols] = imputer_cat.fit_transform(df[cat_cols])
+
+# Scaling
+scaler = None
+if hasattr(config, 'SCALING_STRATEGY') and config.SCALING_STRATEGY != 'none':
+    print(f"Applying scaling: {config.SCALING_STRATEGY}")
+    if config.SCALING_STRATEGY == 'standard':
+        scaler = StandardScaler()
+    elif config.SCALING_STRATEGY == 'minmax':
+        scaler = MinMaxScaler()
+    elif config.SCALING_STRATEGY == 'robust':
+        scaler = RobustScaler()
+        
+    if scaler and num_cols:
+        df[num_cols] = scaler.fit_transform(df[num_cols])
 
 print("Missing values after cleaning:", df.isnull().sum().sum())
 
@@ -78,18 +117,55 @@ y = df['gender']
 
 # 5. Feature Selection
 print(f"\n--- Feature Selection: {config.FEATURE_SELECTOR} ---")
+selected_features = X.columns.tolist()
+
 if config.FEATURE_SELECTOR == 'embedded_rf':
     rf_selector = RandomForestClassifier(n_estimators=config.SELECTOR_N_ESTIMATORS, random_state=config.SEED)
     rf_selector.fit(X, y)
     importances = rf_selector.feature_importances_
     indices = np.argsort(importances)[::-1]
-    print("Feature Ranking:")
+    print("Feature Ranking (All features kept):")
     for f in range(X.shape[1]):
         print(f"{f + 1}. feature {X.columns[indices[f]]} ({importances[indices[f]]:.4f})")
-    # In this prototype, we just rank, but you could add logic to drop features here
-    pass 
+        
+elif config.FEATURE_SELECTOR == 'embedded_l1':
+    # Lasso requires scaling. If not scaled, this might perform poorly.
+    l1_selector = SelectFromModel(Lasso(alpha=0.01, random_state=config.SEED))
+    l1_selector.fit(X, y)
+    mask = l1_selector.get_support()
+    selected_features = X.columns[mask].tolist()
+    print(f"Selected {len(selected_features)} features with Lasso: {selected_features}")
+    X = X[selected_features]
+
+elif config.FEATURE_SELECTOR == 'rfe':
+    n_feat = config.RFE_N_FEATURES if config.RFE_N_FEATURES else 5
+    rfe_selector = RFE(estimator=RandomForestClassifier(n_estimators=50, random_state=config.SEED), n_features_to_select=n_feat)
+    rfe_selector.fit(X, y)
+    mask = rfe_selector.support_
+    selected_features = X.columns[mask].tolist()
+    print(f"Selected {len(selected_features)} features with RFE: {selected_features}")
+    X = X[selected_features]
+
+elif config.FEATURE_SELECTOR == 'rfecv':
+    rfecv_selector = RFECV(estimator=RandomForestClassifier(n_estimators=50, random_state=config.SEED), step=1, cv=StratifiedKFold(5), scoring='accuracy')
+    rfecv_selector.fit(X, y)
+    mask = rfecv_selector.support_
+    selected_features = X.columns[mask].tolist()
+    print(f"Optimal number of features: {rfecv_selector.n_features_}")
+    print(f"Selected Features: {selected_features}")
+    X = X[selected_features]
+
+elif config.FEATURE_SELECTOR == 'select_k_best':
+    k_best = 5 # Default k
+    skb_selector = SelectKBest(f_classif, k=k_best)
+    skb_selector.fit(X, y)
+    mask = skb_selector.get_support()
+    selected_features = X.columns[mask].tolist()
+    print(f"Selected top {k_best} features with SelectKBest: {selected_features}")
+    X = X[selected_features]
+
 else:
-    print("Skipping embedded feature selection.")
+    print("No feature selection applied (or 'none').")
 
 
 # 6. Data Splitting
@@ -108,13 +184,34 @@ if config.USE_STRATIFY:
 
 # 6.5. Cross-Validation (Optional)
 print(f"\n--- Validation Strategy: {config.VALIDATION_STRATEGY} ---")
-rf = RandomForestClassifier(
-    n_estimators=config.RF_N_ESTIMATORS,
-    random_state=config.SEED,
-    class_weight=config.CLASS_WEIGHT,
-    max_depth=config.RF_MAX_DEPTH,
-    min_samples_split=config.RF_MIN_SAMPLES_SPLIT
-)
+
+model_type = config.MODEL_TYPE
+model_params = config.MODEL_PARAMS[model_type].copy()
+print(f"Initializing {model_type} with params: {model_params}")
+
+if model_type == 'random_forest':
+    model = RandomForestClassifier(**model_params)
+elif model_type == 'gradient_boosting':
+    model = GradientBoostingClassifier(**model_params)
+elif model_type == 'logistic_regression':
+    model = LogisticRegression(**model_params)
+    
+elif model_type == 'xgboost':
+    if XGBClassifier is None:
+        raise ImportError("xgboost is not installed. Please install it or choose another model.")
+    model = XGBClassifier(**model_params)
+    
+elif model_type == 'lightgbm':
+    if LGBMClassifier is None:
+        raise ImportError("lightgbm is not installed. Please install it or choose another model.")
+    model = LGBMClassifier(**model_params)
+
+elif model_type == 'catboost':
+    if CatBoostClassifier is None:
+        raise ImportError("catboost is not installed. Please install it or choose another model.")
+    model = CatBoostClassifier(**model_params, verbose=0)
+else:
+    raise ValueError(f"Unknown MODEL_TYPE: {model_type}")
 
 if config.VALIDATION_STRATEGY == 'cross_validation':
     print(f"Executing {config.NUM_FOLDS}-Fold Cross-Validation on Training Data...")
@@ -122,23 +219,23 @@ if config.VALIDATION_STRATEGY == 'cross_validation':
     cv_strategy = StratifiedKFold(n_splits=config.NUM_FOLDS, shuffle=True, random_state=config.SEED)
     
     # Evaluate accuracy
-    scores = cross_val_score(rf, X_train, y_train, cv=cv_strategy, scoring='accuracy')
+    scores = cross_val_score(model, X_train, y_train, cv=cv_strategy, scoring='accuracy')
     print(f"CV Accuracy Scores: {scores}")
     print(f"Mean CV Accuracy: {scores.mean():.4f} (+/- {scores.std() * 2:.4f})")
     
     # Evaluate F1-macro (or weighted) for better class imbalance insight
-    f1_scores = cross_val_score(rf, X_train, y_train, cv=cv_strategy, scoring='f1_macro')
+    f1_scores = cross_val_score(model, X_train, y_train, cv=cv_strategy, scoring='f1_macro')
     print(f"Mean CV F1-Macro: {f1_scores.mean():.4f}")
 
 
 # 7. Model Training (Final Model on full Training Set)
-print(f"\n--- Training Final Model (Class Weight: {config.CLASS_WEIGHT}) ---")
-rf.fit(X_train, y_train)
+print(f"\n--- Training Final Model ({config.MODEL_TYPE}) ---")
+model.fit(X_train, y_train)
 
 
 # 8. Evaluation
 print("\n--- Model Evaluation ---")
-y_pred = rf.predict(X_test)
+y_pred = model.predict(X_test)
 acc = accuracy_score(y_test, y_pred)
 report_str = classification_report(y_test, y_pred)
 print("Accuracy:", acc)
@@ -151,6 +248,8 @@ print("\n--- Saving Artifacts ---")
 # Generate Run ID based on timestamp
 run_id = datetime.now().strftime("run_%Y%m%d_%H%M%S")
 run_dir = os.path.join(config.RESULTS_DIR, run_id)
+if not os.path.exists(config.RESULTS_DIR): # create parent dir if needed
+    os.makedirs(config.RESULTS_DIR)
 if not os.path.exists(run_dir):
     os.makedirs(run_dir)
 
@@ -165,7 +264,7 @@ print(f"Config saved to {config_path}")
 
 # 2. Save Model
 model_path = os.path.join(run_dir, config.MODEL_FILENAME)
-joblib.dump(rf, model_path)
+joblib.dump(model, model_path)
 print(f"Model saved to {model_path}")
 
 # 3. Save Results
@@ -173,9 +272,9 @@ report_dict = classification_report(y_test, y_pred, output_dict=True)
 
 # Calculate and sort feature importances
 feature_importances = {}
-if hasattr(rf, "feature_importances_"):
+if hasattr(model, "feature_importances_"):
     # Zip, sort by importance (descending), and convert to dict
-    importances = rf.feature_importances_
+    importances = model.feature_importances_
     sorted_idx = np.argsort(importances)[::-1]
     feature_importances = {
         X.columns[i]: importances[i] for i in sorted_idx
@@ -271,6 +370,19 @@ try:
     if cat_cols_test:
         test_df_clean[cat_cols_test] = imputer_cat.transform(test_df_clean[cat_cols_test])
 
+    # Scaling
+    if scaler and num_cols_test:
+        # Ensure we have all columns required by scaler
+        # We can only scale if columns match exactly those fitted.
+        # If test set is missing columns, we might need to fill them first.
+        # For now assume test set schema matches training schema for numeric cols.
+        try:
+             test_df_clean[num_cols] = scaler.transform(test_df_clean[num_cols])
+        except KeyError:
+             print("Warning: Test data missing numeric columns for scaling. Skipping scaling.")
+        except ValueError:
+             print("Warning: Scaling mismatch (shape). Skipping scaling.")
+
     # Feature Engineering (Encoding)
     for col, le in le_map.items():
         if col in test_df_clean.columns:
@@ -303,7 +415,7 @@ try:
     test_df_clean = test_df_clean[X.columns]
 
     # Predict
-    predictions = rf.predict(test_df_clean)
+    predictions = model.predict(test_df_clean)
 
     # Create Submission DataFrame
     submission = pd.DataFrame({
