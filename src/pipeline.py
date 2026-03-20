@@ -239,6 +239,41 @@ def b2_regression_residual(train_df, test_df):
     logging.info(f"B2 validation passed. Train residual mean: {res_mean:.6f}")
     return train_ft, test_ft
 
+def b3_noise_pruning(train_df, test_df):
+    """
+    Task B3: Noise Pruning & Signal Clipping
+    """
+    logging.info("Starting B3: Noise Pruning & Signal Clipping")
+    
+    train_ft = train_df.copy()
+    test_ft = test_df.copy()
+    
+    # 1. Drop `yt` and `sleepiness`
+    cols_to_drop = ['yt', 'sleepiness']
+    train_ft = train_ft.drop(columns=[col for col in cols_to_drop if col in train_ft.columns], errors='ignore')
+    test_ft = test_ft.drop(columns=[col for col in cols_to_drop if col in test_ft.columns], errors='ignore')
+    
+    # 2. 95th percentile clipping for `fb_friends`
+    if 'fb_friends' in train_df.columns:
+        p95 = train_df['fb_friends'].quantile(0.95)
+        train_ft['fb_friends'] = train_ft['fb_friends'].clip(upper=p95)
+        if 'fb_friends' in test_ft.columns:
+            test_ft['fb_friends'] = test_ft['fb_friends'].clip(upper=p95)
+            
+    # Validation criteria
+    if 'yt' in train_ft.columns or 'sleepiness' in train_ft.columns:
+        logging.fatal("B3 Validation Failed: 'yt' or 'sleepiness' were not dropped.")
+        sys.exit(1)
+        
+    if 'fb_friends' in train_ft.columns:
+        max_fb = train_ft['fb_friends'].max()
+        if max_fb > train_df['fb_friends'].quantile(0.95) + 1e-5:
+            logging.fatal(f"B3 Validation Failed: fb_friends max {max_fb} exceeds original 95th percentile.")
+            sys.exit(1)
+            
+    logging.info("B3 validation passed: Noise pruned and continuous signals clipped.")
+    return train_ft, test_ft
+
 if __name__ == "__main__":
     df_a1 = a1_unified_ingestion()
     df_a2 = a2_schema_coercion(df_a1)
@@ -247,3 +282,4 @@ if __name__ == "__main__":
     train_df, test_df, kfold_dict = a5_stratified_shuffle_indexing(df_a4)
     train_b1, test_b1 = b1_anthropometric_features(train_df, test_df)
     train_b2, test_b2 = b2_regression_residual(train_b1, test_b1)
+    train_b3, test_b3 = b3_noise_pruning(train_b2, test_b2)
