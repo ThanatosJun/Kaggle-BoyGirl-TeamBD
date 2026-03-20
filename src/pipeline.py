@@ -474,6 +474,34 @@ def run_module_c_engine(global_train, global_test, kfold_dict, y_train_full):
     final_oof, final_test = c3_oof_assembly_and_voting(oof_arrays_per_seed, test_preds_per_seed, original_train_len)
     return final_oof, final_test
 
+def d1_oof_threshold_search(final_oof_probs, y_train_full):
+    """
+    Task D1: Global OOF Threshold Grid Search
+    """
+    logging.info("Starting D1: Global OOF Threshold Grid Search")
+    
+    y_true = y_train_full.values if isinstance(y_train_full, pd.Series) else y_train_full
+    
+    best_th = 0.5
+    best_acc = 0.0
+    
+    for th in np.arange(0.1, 0.91, 0.01):
+        preds = (final_oof_probs >= th).astype(int)
+        acc = (preds == y_true).mean()
+        if acc > best_acc:
+            best_acc = acc
+            best_th = th
+            
+    optimal_threshold = float(best_th)
+    
+    # Validation criteria: best_acc > 0.75
+    if best_acc <= 0.75:
+        logging.fatal(f"D1 Validation Failed: Optimal Accuracy {best_acc:.4f} is not > 0.75.")
+        sys.exit(1)
+        
+    logging.info(f"D1 validation passed! Optimal Threshold: {optimal_threshold:.2f}, Accuracy: {best_acc:.4f}")
+    return optimal_threshold
+
 if __name__ == "__main__":
     df_a1 = a1_unified_ingestion()
     df_a2 = a2_schema_coercion(df_a1)
@@ -490,5 +518,6 @@ if __name__ == "__main__":
     y_target = (train_df['gender'].astype(int) == 2).astype(int)
     
     final_oof_probs, final_test_probs = run_module_c_engine(global_train, global_test, kfold_dict, y_target)
+    optimal_threshold = d1_oof_threshold_search(final_oof_probs, y_target)
     
-    logging.info("Pipeline executed down to C3. Module D execution loop to be integrated.")
+    logging.info("Pipeline executed down to D1. Remaining Module D steps to be integrated.")
