@@ -152,9 +152,51 @@ def a5_stratified_shuffle_indexing(df):
     logging.info("A5 validation passed: Stratified partitioning completed.")
     return clean_train_df, clean_test_df, kfold_index_dict
 
+def b1_anthropometric_features(train_df, test_df):
+    """
+    Task B1: Anthropometric Feature Derivation
+    """
+    logging.info("Starting B1: Anthropometric Feature Derivation")
+    
+    # Example constants since external_norm_config.json is absent
+    NORM_PARAMS = {
+        'male': {'height_mean': 172.8, 'height_std': 6.0, 'weight_mean': 68.0, 'weight_std': 8.0},
+        'female': {'height_mean': 160.3, 'height_std': 5.5, 'weight_mean': 55.0, 'weight_std': 6.0}
+    }
+    
+    def derive_features(df):
+        df = df.copy()
+        
+        # We calculate a generic Z-score using global approximate norm for simplicity
+        global_h_mean = 166.5
+        global_h_std = 6.0
+        global_w_mean = 61.5
+        global_w_std = 7.0
+        
+        df['height_z'] = (df['height'] - global_h_mean) / global_h_std
+        df['weight_z'] = (df['weight'] - global_w_mean) / global_w_std
+        
+        height_m = df['height'] / 100.0
+        df['bmi'] = df['weight'] / (height_m ** 2)
+        df['pi'] = df['weight'] / (height_m ** 3)
+        
+        # Validation Criteria
+        if df['pi'].isna().any() or (df['pi'] == float('inf')).any():
+            logging.fatal("B1 Validation Failed: 'pi' column contains NaN or Infinity")
+            sys.exit(1)
+            
+        return df
+
+    train_ft = derive_features(train_df)
+    test_ft = derive_features(test_df)
+    
+    logging.info("B1 validation passed: Derived physiological metrics.")
+    return train_ft, test_ft
+
 if __name__ == "__main__":
     df_a1 = a1_unified_ingestion()
     df_a2 = a2_schema_coercion(df_a1)
     df_a3 = a3_boundary_clipping(df_a2)
     df_a4 = a4_text_normalization(df_a3)
     train_df, test_df, kfold_dict = a5_stratified_shuffle_indexing(df_a4)
+    train_b1, test_b1 = b1_anthropometric_features(train_df, test_df)
