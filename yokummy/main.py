@@ -115,6 +115,13 @@ for col in cat_cols:
 X = df.drop('gender', axis=1)
 y = df['gender']
 
+# XGBoost/LightGBM/CatBoost require 0-indexed classes [0, 1].
+# Random Forest/Logistic Regression work fine with [1, 2], but for consistency
+# and safety with all sklearn-compatible boosting libs, let's normalize y to start at 0.
+# We will map them back later.
+y_min = y.min()
+y = y - y_min # Now y is [0, 1]
+
 # 5. Feature Selection
 print(f"\n--- Feature Selection: {config.FEATURE_SELECTOR} ---")
 selected_features = X.columns.tolist()
@@ -277,7 +284,7 @@ if hasattr(model, "feature_importances_"):
     importances = model.feature_importances_
     sorted_idx = np.argsort(importances)[::-1]
     feature_importances = {
-        X.columns[i]: importances[i] for i in sorted_idx
+        X.columns[i]: float(importances[i]) for i in sorted_idx
     }
 
 results = {
@@ -416,6 +423,9 @@ try:
 
     # Predict
     predictions = model.predict(test_df_clean)
+    
+    # Map predictions back to original labels (e.g. 0->1, 1->2)
+    predictions = predictions + y_min
 
     # Create Submission DataFrame
     submission = pd.DataFrame({

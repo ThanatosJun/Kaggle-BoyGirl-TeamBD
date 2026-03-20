@@ -55,7 +55,7 @@ RFE_N_FEATURES = None  # Set integer for 'rfe', leave as None for 'rfecv'
 # 'lightgbm'            : Fast, memory-efficient, great for larger datasets.
 # 'catboost'            : Excellent out-of-the-box handling of categorical features.
 # 'logistic_regression' : Simple, interpretable linear baseline.
-MODEL_TYPE = 'gradient_boosting'
+MODEL_TYPE = 'random_forest'
 
 # Validation Strategy Options:
 # 'holdout'          : Single train/test split.
@@ -78,11 +78,12 @@ CLASS_WEIGHT = 'balanced'
 
 MODEL_PARAMS = {
     'random_forest': {
-        'n_estimators': 200,
-        'max_depth': None,
-        'min_samples_split': 2,
+        'n_estimators': 500,
+        'max_depth': 10,
+        'min_samples_split': 5,
         'class_weight': CLASS_WEIGHT,
-        'random_state': SEED
+        'random_state': SEED,
+        'max_features': 0.5,
     },
     'gradient_boosting': {
         'learning_rate': 0.03,

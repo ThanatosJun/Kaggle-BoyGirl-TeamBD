@@ -10,7 +10,7 @@
     "FEATURE_SELECTOR": "rfecv",
     "SELECTOR_N_ESTIMATORS": 100,
     "RFE_N_FEATURES": null,
-    "MODEL_TYPE": "gradient_boosting",
+    "MODEL_TYPE": "xgboost",
     "VALIDATION_STRATEGY": "cross_validation",
     "NUM_FOLDS": 10,
     "TEST_SIZE": 0.2,
@@ -49,5 +49,5 @@
         }
     },
     "RESULTS_DIR": "yokummy/runs",
-    "MODEL_FILENAME": "gradient_boosting_model.pkl"
+    "MODEL_FILENAME": "xgboost_model.pkl"
 }
