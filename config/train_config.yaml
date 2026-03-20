@@ -1,0 +1,104 @@
+# Training Configuration for Boy or Girl Classification
+# Competition: Boy or Girl 2026 NEW | Kaggle
+
+experiment:
+  name: baseline_5fold_cv
+  seed: 42
+  description: "Initial baseline with 5-fold CV"
+
+# Data paths
+data:
+  train_path: dataset/train.csv
+  test_path: dataset/test.csv
+  target_column: Gender  # 根據你的資料集調整
+
+# Preprocessing
+preprocessing:
+  # Imputation strategy for missing values
+  numeric_imputer: median  # Options: mean, median, most_frequent, knn
+  categorical_imputer: most_frequent  # Options: most_frequent, constant
+
+  # Scaling strategy
+  scaling: standard  # Options: standard, minmax, robust, none
+
+  # Outlier handling
+  outlier_detection: false
+  height_threshold: 200
+  weight_threshold: 120
+
+# Feature Engineering
+features:
+  # Feature transformation
+  transformation:
+    enable: true
+    methods:
+      - one_hot_encoding  # For categorical features
+      - polynomial_features  # Create interaction terms (optional)
+
+  # Feature selection
+  selection:
+    enable: true
+    method: none  # Options: none, embedded_rf, rfe, rfecv, select_k_best
+    n_features: null  # For rfe/select_k_best
+
+  # Feature extraction
+  extraction:
+    enable: false
+    method: pca  # Options: pca, lda
+    n_components: null
+
+# Model configuration
+model:
+  type: random_forest  # Options: random_forest, xgboost, lightgbm, logistic_regression
+
+  # Random Forest parameters
+  random_forest:
+    n_estimators: 200
+    max_depth: 10
+    min_samples_split: 5
+    min_samples_leaf: 2
+    max_features: sqrt
+    class_weight: balanced
+
+  # XGBoost parameters (備用)
+  xgboost:
+    n_estimators: 300
+    max_depth: 4
+    learning_rate: 0.05
+    subsample: 0.8
+    colsample_bytree: 0.8
+    scale_pos_weight: 1
+
+  # Logistic Regression parameters (備用)
+  logistic_regression:
+    penalty: l2
+    C: 1.0
+    class_weight: balanced
+    max_iter: 1000
+    solver: lbfgs
+
+# Training strategy
+training:
+  validation_strategy: cross_validation  # Options: cross_validation, holdout
+  n_folds: 5
+  stratified: true  # Preserve class distribution in each fold
+
+  # Data balancing
+  balance_data: true
+  balance_method: class_weight  # Options: class_weight, smote, undersample, oversample
+
+  # Evaluation metrics
+  metrics:
+    - accuracy
+    - precision
+    - recall
+    - f1_score
+    - roc_auc
+
+# Output settings
+output:
+  results_dir: results/
+  save_model: true
+  save_predictions: true
+  save_metrics: true
+  log_experiments: true

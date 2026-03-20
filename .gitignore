@@ -1,3 +1,56 @@
+# IDE and Editor
 /.vscode
-yokummy/.kaggle
-yokummy/__pycache__
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Kaggle API credentials
+.kaggle/
+
+# Experiment outputs
+results/
+logs/
+*.pkl
+*.joblib
+*.h5
+*.pth
+
+# Data files (large datasets)
+dataset/*.csv
+!dataset/README.md
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
+# Old directories (if not yet deleted)
+yokummy/

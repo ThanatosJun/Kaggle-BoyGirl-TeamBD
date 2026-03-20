@@ -1,0 +1,48 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Jupyter
+.ipynb_checkpoints
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Results and logs (will be mounted as volumes)
+results/
+logs/
+*.pkl
+*.joblib
+
+# Data (will be mounted as volume)
+dataset/*.csv
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Documentation
+*.md
+workflow.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Old directories
+yokummy/
