@@ -520,6 +520,42 @@ def d2_probability_translation(final_test_probs, optimal_threshold):
     logging.info(f"D2 validation passed! Translated probabilities to hard labels {unique_vals}")
     return test_binary_predictions
 
+def d3_format_alignment_and_reversal(test_binary_predictions, sample_sub_path="Boy_or_girl_test_sandbox_sample_submission.csv"):
+    """
+    Task D3: Format Alignment & Target Reversal
+    """
+    logging.info("Starting D3: Format Alignment & Target Reversal")
+    
+    submission_labels = test_binary_predictions + 1  # 0->1(boy), 1->2(girl)
+    
+    sample_sub = pd.read_csv(sample_sub_path)
+    
+    # We must ensure the length matches. In standard Kaggle script this aligns precisely.
+    validation_length = len(sample_sub)
+    if len(submission_labels) != validation_length:
+        # Strictly speaking, strategy requires Fatal if lengths do not match.
+        # This will fail on the Sandbox 12-row sample if test is 426.
+        logging.fatal(f"D3 Validation Failed: Prediction length ({len(submission_labels)}) != Sample sub length ({validation_length})")
+        sys.exit(1)
+        
+    submission_df = pd.DataFrame({
+        'id': sample_sub['id'],
+        'gender': submission_labels
+    })
+    
+    # Fatal validations
+    if list(submission_df.columns) != ['id', 'gender']:
+        logging.fatal("D3 Validation Failed: Columns are not strictly ['id', 'gender']")
+        sys.exit(1)
+        
+    if not set(submission_df['gender'].unique()).issubset({1, 2}):
+        logging.fatal(f"D3 Validation Failed: Invalid gender labels present: {submission_df['gender'].unique()}")
+        sys.exit(1)
+        
+    submission_df.to_csv("submission_final.csv", index=False)
+    logging.info("D3 validation passed! Final tactical submission exported strictly adhering to Kaggle API standard.")
+    return submission_df
+
 if __name__ == "__main__":
     df_a1 = a1_unified_ingestion()
     df_a2 = a2_schema_coercion(df_a1)
@@ -538,5 +574,6 @@ if __name__ == "__main__":
     final_oof_probs, final_test_probs = run_module_c_engine(global_train, global_test, kfold_dict, y_target)
     optimal_threshold = d1_oof_threshold_search(final_oof_probs, y_target)
     test_binary_predictions = d2_probability_translation(final_test_probs, optimal_threshold)
+    submission_df = d3_format_alignment_and_reversal(test_binary_predictions)
     
-    logging.info("Pipeline executed down to D2. Remaining final D3 submission formatting.")
+    logging.info("PIPELINE COMPLETED SUCCESSFULLY!")
