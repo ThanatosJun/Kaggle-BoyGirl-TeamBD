@@ -417,6 +417,63 @@ def c2_defensive_model_fitting(X_train_imp, y_train, X_val_imp, y_val, X_test_im
         
     return val_probs, test_probs, model
 
+def c3_oof_assembly_and_voting(oof_arrays_per_seed, test_preds_per_seed, original_train_len):
+    """
+    Task C3: OOF Assembly & Seed Soft-Voting
+    oof_arrays_per_seed: list of 1D arrays, each of length original_train_len
+    test_preds_per_seed: list of 1D arrays containing averaged or single test set predictions per seed
+    """
+    logging.info("Starting C3: OOF Assembly & Seed Soft-Voting")
+    
+    # Average OOF across seeds
+    final_oof_probs = np.mean(oof_arrays_per_seed, axis=0)
+    
+    # Average test predictions across seeds
+    final_test_probs = np.mean(test_preds_per_seed, axis=0)
+    
+    # Validation criteria: Length matches exactly
+    if len(final_oof_probs) != original_train_len:
+        logging.fatal(f"C3 Validation Failed: OOF length ({len(final_oof_probs)}) != original train len ({original_train_len})")
+        sys.exit(1)
+        
+    logging.info(f"C3 validation passed: Ensemble Soft-Voting complete. OOF Mean -> {final_oof_probs.mean():.4f}")
+    return final_oof_probs, final_test_probs
+
+def run_module_c_engine(global_train, global_test, kfold_dict, y_train_full):
+    SEEDS = [42, 2024, 777, 888, 123]
+    original_train_len = global_train.shape[0]
+    
+    oof_arrays_per_seed = []
+    test_preds_per_seed = []
+    
+    y = y_train_full.values if isinstance(y_train_full, pd.Series) else y_train_full
+    
+    for seed in SEEDS:
+        logging.info(f"--- Running Seed {seed} ---")
+        oof_probs = np.zeros(original_train_len)
+        test_fold_preds = []
+        
+        for fold, indices in kfold_dict.items():
+            train_idx, val_idx = indices['train_idx'], indices['val_idx']
+            
+            X_tr, X_val = global_train[train_idx], global_train[val_idx]
+            y_tr, y_val = y[train_idx], y[val_idx]
+            
+            # C1: Imputation
+            X_tr_imp, X_val_imp, X_te_imp = c1_infold_imputation(X_tr, X_val, global_test)
+            
+            # C2: Model Train
+            val_p, test_p, _ = c2_defensive_model_fitting(X_tr_imp, y_tr, X_val_imp, y_val, X_te_imp, seed)
+            
+            oof_probs[val_idx] = val_p
+            test_fold_preds.append(test_p)
+            
+        oof_arrays_per_seed.append(oof_probs)
+        test_preds_per_seed.append(np.mean(test_fold_preds, axis=0))
+        
+    final_oof, final_test = c3_oof_assembly_and_voting(oof_arrays_per_seed, test_preds_per_seed, original_train_len)
+    return final_oof, final_test
+
 if __name__ == "__main__":
     df_a1 = a1_unified_ingestion()
     df_a2 = a2_schema_coercion(df_a1)
@@ -429,4 +486,9 @@ if __name__ == "__main__":
     train_b4_rules, test_b4_rules, train_b4_tfidf, test_b4_tfidf = b4_text_vectorization(train_b3, test_b3)
     global_train, global_test = b5_feature_fusion(train_b3, test_b3, train_b4_rules, test_b4_rules, train_b4_tfidf, test_b4_tfidf, len(train_df))
     
-    logging.info("Pipeline executed down to B5. Module C & D execution loop to be integrated.")
+    # Extract robust y_train. 1->0 (boy), 2->1 (girl) to fit standard binary logloss requirements
+    y_target = (train_df['gender'].astype(int) == 2).astype(int)
+    
+    final_oof_probs, final_test_probs = run_module_c_engine(global_train, global_test, kfold_dict, y_target)
+    
+    logging.info("Pipeline executed down to C3. Module D execution loop to be integrated.")
