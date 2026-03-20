@@ -8,8 +8,8 @@ DATA_PATH = 'data/raw/train.csv'
 
 # --- Preprocessing ---
 # Thresholds for outlier detection
-HEIGHT_THRESHOLD = 300
-WEIGHT_THRESHOLD = 1000
+HEIGHT_THRESHOLD = 200
+WEIGHT_THRESHOLD = 150
 
 # Imputation Strategies
 # Numeric: 'mean', 'median', 'most_frequent', 'constant'
@@ -27,7 +27,7 @@ SELECTOR_N_ESTIMATORS = 100
 # Validation Strategy
 # 'holdout' for single split, 'cross_validation' for k-fold
 VALIDATION_STRATEGY = 'cross_validation'
-NUM_FOLDS = 5 # Used if VALIDATION_STRATEGY is 'cross_validation'
+NUM_FOLDS = 10 # Used if VALIDATION_STRATEGY is 'cross_validation'
 # Split Strategy
 TEST_SIZE = 0.2
 USE_STRATIFY = True  # Set to True to use stratified split
