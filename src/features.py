@@ -1,0 +1,74 @@
+import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, FunctionTransformer
+from sklearn.compose import ColumnTransformer
+
+class ClippingTransformer(BaseEstimator, TransformerMixin):
+    """自訂 Transformer：針對數值型特徵進行極端值剪裁 (Clipping)"""
+    def __init__(self, lower_percentile=1, upper_percentile=99):
+        self.lower_percentile = lower_percentile
+        self.upper_percentile = upper_percentile
+        self.lower_bounds_ = None
+        self.upper_bounds_ = None
+
+    def fit(self, X, y=None):
+        self.lower_bounds_ = np.nanpercentile(X, self.lower_percentile, axis=0)
+        self.upper_bounds_ = np.nanpercentile(X, self.upper_percentile, axis=0)
+        return self
+
+    def transform(self, X, y=None):
+        # 建立副本以避免覆寫原始資料
+        X_clipped = np.copy(X)
+        for i in range(X.shape[1]):
+            X_clipped[:, i] = np.clip(X_clipped[:, i], self.lower_bounds_[i], self.upper_bounds_[i])
+        return X_clipped
+
+
+def build_preprocessor(config):
+    """
+    根據 config 設定，建立完整的 Pipeline：
+    1. 數值特徵 (一般): 中位數補值 -> 剪裁 -> StandardScaler
+    2. 數值特徵 (長尾): 中位數補值 -> log(1+x) -> StandardScaler
+    3. 無序類別特徵: 眾數補值 -> One-Hot Encoding
+    4. 有序類別特徵: 眾數補值 -> 維持原數值大小 (不做 One-Hot)
+    """
+
+    # 1. 數值特徵 Pipeline (Clipping + Scaling)
+    num_pipeline = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='median')),
+        ('clipper', ClippingTransformer()),
+        ('scaler', StandardScaler())
+    ])
+
+    # 2. 數值特徵長尾分佈 Pipeline (Log1p + Scaling)
+    log_pipeline = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='median')),
+        ('log1p', FunctionTransformer(np.log1p, validate=False)),
+        ('scaler', StandardScaler())
+    ])
+
+    # 3. 無序類別特徵 Pipeline (OneHot Encoding)
+    cat_pipeline = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
+    ])
+
+    # 4. 有序類別特徵 Pipeline (只做補值，因在 data_loader 已轉成 Float)
+    ord_pipeline = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent'))
+    ])
+
+    # 組合所有 Pipeline 到 ColumnTransformer
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', num_pipeline, config['features']['numeric_cols']),
+            ('log', log_pipeline, config['features']['numeric_log_cols']),
+            ('cat', cat_pipeline, config['features']['categorical_cols']),
+            ('ord', ord_pipeline, config['features']['ordinal_cols'])
+        ],
+        remainder='drop'  # 沒有設定到的特徵直接丟棄
+    )
+
+    return preprocessor

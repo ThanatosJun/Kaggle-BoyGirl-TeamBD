@@ -1,0 +1,26 @@
+data:
+  train_path: "dataset/train.csv"
+  test_path: "dataset/test.csv"
+  drop_cols: ["id", "yt", "self_intro"]
+  target_col: "gender"
+
+features:
+  numeric_cols: ["height", "weight", "iq"]
+  numeric_log_cols: ["fb_friends"]
+  categorical_cols: ["star_sign", "phone_os"]
+  ordinal_cols: ["sleepiness"]
+
+model:
+  xgb_params:
+    objective: "binary:logistic"
+    eval_metric: "logloss"
+    learning_rate: 0.1
+    max_depth: 6
+    random_state: 42
+    enable_categorical: false # 我們已手動做處理
+
+training:
+  n_splits: 5
+  use_smote: true
+  random_state: 42
+  save_dir: "models_saved"
