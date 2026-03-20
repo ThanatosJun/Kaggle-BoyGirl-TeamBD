@@ -2,6 +2,9 @@ import pandas as pd
 import logging
 import sys
 from sklearn.model_selection import StratifiedKFold
+from sklearn.linear_model import LinearRegression
+import sys
+from sklearn.model_selection import StratifiedKFold
 import sys
 
 # Configure logging
@@ -193,6 +196,49 @@ def b1_anthropometric_features(train_df, test_df):
     logging.info("B1 validation passed: Derived physiological metrics.")
     return train_ft, test_ft
 
+def b2_regression_residual(train_df, test_df):
+    """
+    Task B2: Regression Residual Extraction
+    """
+    logging.info("Starting B2: Regression Residual Extraction")
+    
+    train_df = train_df.copy()
+    test_df = test_df.copy()
+    
+    # Fit regression model only on non-null train data
+    train_valid = train_df.dropna(subset=['height', 'weight'])
+    X_train = train_valid[['height']]
+    y_train = train_valid['weight']
+    
+    if len(X_train) == 0:
+        logging.fatal("B2 Validation Failed: No valid data to fit Linear Regression.")
+        sys.exit(1)
+        
+    lr = LinearRegression()
+    lr.fit(X_train, y_train)
+    
+    # Predict and calculate residuals where height is not null
+    def calc_residuals(df):
+        df['weight_residual'] = pd.NA
+        valid_idx = df['height'].dropna().index
+        if len(valid_idx) > 0:
+            pred_w = lr.predict(df.loc[valid_idx, ['height']])
+            # residual = actual - pred (actual could be NaN, which remains NaN in pandas subtraction)
+            df.loc[valid_idx, 'weight_residual'] = df.loc[valid_idx, 'weight'] - pred_w
+        return df
+
+    train_ft = calc_residuals(train_df)
+    test_ft = calc_residuals(test_df)
+    
+    # Validation criteria: train set residual mean must be close to 0
+    res_mean = train_ft['weight_residual'].mean()
+    if abs(res_mean) > 1e-3:
+        logging.fatal(f"B2 Validation Failed: Residual mean {res_mean} is not close to 0.")
+        sys.exit(1)
+        
+    logging.info(f"B2 validation passed. Train residual mean: {res_mean:.6f}")
+    return train_ft, test_ft
+
 if __name__ == "__main__":
     df_a1 = a1_unified_ingestion()
     df_a2 = a2_schema_coercion(df_a1)
@@ -200,3 +246,4 @@ if __name__ == "__main__":
     df_a4 = a4_text_normalization(df_a3)
     train_df, test_df, kfold_dict = a5_stratified_shuffle_indexing(df_a4)
     train_b1, test_b1 = b1_anthropometric_features(train_df, test_df)
+    train_b2, test_b2 = b2_regression_residual(train_b1, test_b1)
