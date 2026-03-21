@@ -222,7 +222,7 @@ def b2_regression_residual(train_df, test_df):
     
     # Predict and calculate residuals where height is not null
     def calc_residuals(df):
-        df['weight_residual'] = pd.NA
+        df['weight_residual'] = float('nan')
         valid_idx = df['height'].dropna().index
         if len(valid_idx) > 0:
             pred_w = lr.predict(df.loc[valid_idx, ['height']])
