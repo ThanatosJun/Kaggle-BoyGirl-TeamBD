@@ -28,3 +28,8 @@ python src/pipeline.py
 - **Module B (Feature Engineering)**: Derives body stat norms, residual deviations, noise pruning, and embeds textual semantic extraction up to 1000 features.
 - **Module C (Robust Model Training)**: Isolates standardization iteratively within individual folds preventing leakage, trains 5 randomized LightGBM configurations natively suppressing over-fit patterns.
 - **Module D (Tactical Resolution)**: Synthesize `submission_final.csv` translating 1/0 binary boundaries back strictly into Kaggle required gender codes using 0-bias validation-optimized threshold grids.
+
+### 4. Diagnostic Utilities
+We maintain isolated utility scripts under `scripts/` to debug dimension explosions or trace data shapes interactively:
+- `scripts/check_dims.py`: Analyzes raw datasets to quickly identify unfiltered string/object properties mimicking unexpected categorical constraints.
+- `scripts/check_pipeline.py`: Dynamically intercepts the B5 execution payload catching hidden One-Hot dimensional leakage (such as the Float Residual casting bug) via raw terminal inspections.
