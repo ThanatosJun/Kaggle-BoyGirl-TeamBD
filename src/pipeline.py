@@ -3,6 +3,7 @@ import logging
 import sys
 import scipy.sparse as sp
 import numpy as np
+import warnings
 from sklearn.model_selection import StratifiedKFold
 from sklearn.linear_model import LinearRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -392,21 +393,30 @@ def c2_defensive_model_fitting(X_train_imp, y_train, X_val_imp, y_val, X_test_im
     
     # Early stopping through eval_set (simulated simply with n_estimators here for draft simplicity, 
     # but normally we'd use lgb.early_stopping callback if lightgbm version allows)
-    model.fit(
-        X_train_imp, y_train,
-        eval_set=[(X_val_imp, y_val)],
-        eval_metric='binary_logloss',
-        callbacks=[
-            # Mocking early stopping for compatibility across versions
-        ]
-    )
     
-    # 1 is boy, 2 is girl. LightGBM usually expects 0/1 for binary. 
-    # Ensure y_train is 0/1 mapped. Let's assume y is already 0/1 or model handles it.
-    # The output probability of class '1' (which is the higher class, 'girl' if 1 and 2 or '1' if 0 and 1)
-    # We will just predict_proba and take the second column.
-    val_probs = model.predict_proba(X_val_imp)[:, 1]
-    test_probs = model.predict_proba(X_test_imp)[:, 1]
+    # Suppress verbose scikit-learn feature name mismatch warnings.
+    # Because C1's KNNImputer converts DataFrames into pure NumPy arrays (stripping feature names), 
+    # LightGBM auto-generates internal names during fit(). When eval_set or predict_proba uses other 
+    # NumPy arrays, scikit-learn aggressively warns about the missing feature names. We wrap both 
+    # fit() and predict_proba() to silence this harmless format artifact during iterations.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="X does not have valid feature names")
+        
+        model.fit(
+            X_train_imp, y_train,
+            eval_set=[(X_val_imp, y_val)],
+            eval_metric='binary_logloss',
+            callbacks=[
+                # Mocking early stopping for compatibility across versions
+            ]
+        )
+        
+        # 1 is boy, 2 is girl. LightGBM usually expects 0/1 for binary. 
+        # Ensure y_train is 0/1 mapped. Let's assume y is already 0/1 or model handles it.
+        # The output probability of class '1' (which is the higher class, 'girl' if 1 and 2 or '1' if 0 and 1)
+        # We will just predict_proba and take the second column.
+        val_probs = model.predict_proba(X_val_imp)[:, 1]
+        test_probs = model.predict_proba(X_test_imp)[:, 1]
     
     # Validation criteria: Probabilities must be between 0 and 1
     if (val_probs < 0).any() or (val_probs > 1).any() or (test_probs < 0).any() or (test_probs > 1).any():
