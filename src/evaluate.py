@@ -8,6 +8,7 @@ def cross_validate_with_smote(X, y, preprocessor, model, config):
     """
     執行 5-Fold 交叉驗證，並確保 SMOTE 只在每次的 Train Fold 內部執行，
     以避免 Data Leakage。
+    返回：(metrics, fold_models, fold_preprocessors)
     """
     n_splits = config['training']['n_splits']
     use_smote = config['training']['use_smote']
@@ -16,6 +17,8 @@ def cross_validate_with_smote(X, y, preprocessor, model, config):
     skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
     
     metrics = {'accuracy': [], 'f1': [], 'precision': [], 'recall': []}
+    fold_models = []
+    fold_preprocessors = []
 
     print(f"開始 {n_splits}-Fold 交叉驗證 (SMOTE={'開啟' if use_smote else '關閉'})...")
 
@@ -53,10 +56,14 @@ def cross_validate_with_smote(X, y, preprocessor, model, config):
         metrics['precision'].append(prec)
         metrics['recall'].append(rec)
 
+        # 保存 fold 模型與 preprocessor
+        fold_models.append(model_fold)
+        fold_preprocessors.append(prep_fold)
+
         print(f"Fold {fold+1}: Accuracy={acc:.4f}, F1-Score={f1:.4f}")
 
     print("\n--- 🏁 CV 最終平均結果 ---")
     for metric_name, values in metrics.items():
         print(f"Mean {metric_name.capitalize()}: {np.mean(values):.4f} (± {np.std(values):.4f})")
 
-    return metrics
+    return metrics, fold_models, fold_preprocessors

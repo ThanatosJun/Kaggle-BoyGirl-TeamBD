@@ -26,11 +26,20 @@ class ClippingTransformer(BaseEstimator, TransformerMixin):
         return X_clipped
 
 
+def clip_negative(X):
+    """
+    將負值 clip 到 0（用於 log1p 前處理）
+    這是一個普通函數（非 lambda），可以被 pickle 序列化
+    """
+    return np.clip(X, 0, None)
+
+
 def build_preprocessor(config):
     """
     根據 config 設定，建立完整的 Pipeline：
-    1. 數值特徵 (一般): 中位數補值 -> 剪裁 -> StandardScaler
-    2. 數值特徵 (長尾): 中位數補值 -> log(1+x) -> StandardScaler
+    1. 數值特徵 (一般): 中位數補值 -> 剪裁 (1%-99%) -> StandardScaler
+    2. 數值特徵 (長尾): 中位數補值 -> 移除負值 (clip to 0) -> log(1+x) -> StandardScaler
+       ⚠️ 重要: 數據中 fb_friends 存在 -1000 等負值，必須在 log1p 前處理，否則會產生 NaN
     3. 無序類別特徵: 眾數補值 -> One-Hot Encoding
     4. 有序類別特徵: 眾數補值 -> 維持原數值大小 (不做 One-Hot)
     """
@@ -43,8 +52,11 @@ def build_preprocessor(config):
     ])
 
     # 2. 數值特徵長尾分佈 Pipeline (Log1p + Scaling)
+    # ⚠️ 注意：必須先移除負值，否則 log1p 會產生 NaN 導致 SMOTE 失敗
+    # Pipeline: 中位數補值 → clip 負值到 0 → log(1+x) → StandardScaler
     log_pipeline = Pipeline(steps=[
         ('imputer', SimpleImputer(strategy='median')),
+        ('clip_negative', FunctionTransformer(clip_negative, validate=False)),
         ('log1p', FunctionTransformer(np.log1p, validate=False)),
         ('scaler', StandardScaler())
     ])

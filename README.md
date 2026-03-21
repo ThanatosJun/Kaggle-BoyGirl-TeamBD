@@ -1,377 +1,383 @@
 # Boy or Girl 2026 - Kaggle Competition
 
-性別預測二元分類競賽專案。
+性別預測二元分類競賽專案（TeamBD）。
 
 ## 📁 專案結構
 
 ```
 Kaggle-BoyGirl-TeamBD/
-├── config/                   # 配置檔案
-│   └── train_config.yaml     # 訓練配置
+├── configs/                  # 配置檔案
+│   └── default_config.yaml   # 預設訓練配置
 ├── dataset/                  # 資料集
 │   ├── train.csv            # 訓練資料
 │   └── test.csv             # 測試資料
 ├── src/                      # 原始碼模組
-│   ├── data.py              # 資料載入、清理、切分
-│   ├── features.py          # 特徵工程
-│   ├── models.py            # 模型訓練與評估
-│   └── utils.py             # 工具函數
+│   ├── __init__.py
+│   ├── data_loader.py       # 資料載入與清理
+│   ├── features.py          # 特徵工程 Pipeline
+│   ├── models.py            # 模型建立
+│   └── evaluate.py          # 評估與交叉驗證
 ├── notebooks/                # Jupyter Notebooks (探索用)
-│   └── 01_quick_eda.ipynb   # 快速 EDA
-├── results/                  # 實驗結果 (不納入版本控制)
-│   └── {exp_name}_{timestamp}/
-│       ├── config.yaml      # 該次實驗的配置
-│       ├── metrics.json     # CV 評估結果
-│       ├── models/          # 訓練好的模型
-│       └── submission.csv   # Kaggle 提交檔案
-├── logs/                     # 訓練日誌 (不納入版本控制)
-├── train.py                  # 主訓練腳本
-├── workflow.md               # 完整訓練流程說明
-└── requirements.txt          # Python 依賴套件
+├── experiments/              # 實驗結果目錄（自動產生）
+│   ├── experiment_log.csv   # 總實驗記錄表
+│   ├── exp_001_baseline/    # 實驗 1
+│   │   ├── config.yaml
+│   │   ├── cv_results.json
+│   │   ├── preprocessor.pkl
+│   │   └── model.pkl
+│   ├── exp_002_no_smote/    # 實驗 2
+│   │   └── ...
+│   └── ...
+├── main_train.py            # 主訓練腳本
+├── main_predict.py          # 主預測腳本
+├── training_workflow_main.md # 訓練流程文檔
+├── start_train.md           # 訓練啟動指南
+└── requirements.txt         # Python 依賴套件
 ```
 
 ---
 
 ## 🚀 快速開始
 
-### 方法一：使用 Docker（推薦）
+詳細步驟請參考 **[start_train.md](start_train.md)**
 
-#### 1. 準備資料
-將 Kaggle 競賽資料下載後放入 `dataset/` 資料夾：
-- `train.csv` - 訓練資料
-- `test.csv` - 測試資料（之後會有）
+### 1. 創建環境
 
-#### 2. 建立 Docker Image
 ```bash
-docker-compose build
+conda create -n boygirl python=3.13 -y
+conda activate boygirl
 ```
 
-#### 3. 執行訓練
-```bash
-# 使用預設配置
-docker-compose up
+### 2. 安裝依賴
 
-# 或使用自訂配置
-docker-compose run boygirl-train python train.py --exp_name my_experiment
-```
-
-#### 4. 查看結果
-結果會自動儲存到本機的 `results/` 和 `logs/` 資料夾
-
----
-
-### 方法二：本機 Python 環境
-
-#### 1. 安裝依賴
 ```bash
 pip install -r requirements.txt
 ```
 
-#### 2. 準備資料
-將 Kaggle 競賽資料下載後放入 `dataset/` 資料夾：
-- `train.csv` - 訓練資料
-- `test.csv` - 測試資料
+### 3. 執行訓練
 
-#### 3. 執行訓練
 ```bash
-# 使用預設配置
-python train.py
-
-# 指定配置檔案和實驗名稱
-python train.py --config config/train_config.yaml --exp_name baseline_v1
+python main_train.py
 ```
 
-#### 4. 查看結果
-訓練完成後，結果會儲存在：
-```
-results/{exp_name}_{timestamp}/
-├── config.yaml          # 該次實驗配置
-├── metrics.json         # CV 評估指標
-├── models/              # 訓練好的模型
-│   ├── fold_0.pkl
-│   ├── fold_1.pkl
-│   └── ...
-└── submission.csv       # Kaggle 提交檔案
+每次執行會自動創建新的實驗資料夾（exp_001, exp_002, ...）
+
+### 4. 執行預測
+
+```bash
+# 使用最新的實驗模型預測
+python main_predict.py
+
+# 使用指定實驗編號的模型預測（例如實驗 2）
+python main_predict.py 2
 ```
 
 ---
 
 ## 📋 訓練流程
 
-完整的訓練流程定義在 [`workflow.md`](workflow.md) 中，包含 4 個階段：
+完整的訓練流程定義在 [`training_workflow_main.md`](training_workflow_main.md) 中：
 
-### Phase 1: 資料探索與準備
-- EDA (Exploratory Data Analysis)
-- Data Cleaning & Imputation
-- Baseline Model
+### Training 階段（train.csv）：
+1. **EDA** - 探索數據特性
+2. **Cleaning** - 移除無用欄位（id, yt, self_intro）
+3. **Data Split** - 5-Fold CV（在 evaluate.py 中執行）
+4. **Imputation** - 填補空值
+   - 數值型：中位數（height, weight, iq, fb_friends）
+   - 類別型：眾數（star_sign, phone_os, sleepiness）
+5. **Feature Transformation**
+   - height, weight, iq：Clipping (1%-99%) + StandardScaler
+   - **fb_friends：移除負值 + log(1+x) + StandardScaler** ⚠️
+   - star_sign, phone_os：One-Hot Encoding
+   - sleepiness：保持數值（有序特徵）
+6. **Model Training** - XGBoost + 5-Fold CV（SMOTE 在每個 fold 內部執行）
+7. **Model Evaluation** - Accuracy, F1-Score, Precision, Recall
 
-### Phase 2: 特徵工程迭代
-- Feature Transformation (編碼、標準化)
-- Feature Selection (選擇重要特徵)
-- Feature Extraction (PCA、多項式特徵)
-
-### Phase 3: 模型訓練與驗證
-- 5-Fold Cross-Validation
-- Data Balance (class_weight / SMOTE)
-- Model Training & Evaluation
-
-### Phase 4: 結果分析與決策
-- CV Results Analysis
-- Iteration Decision
-- Final Training & Prediction
+### Prediction 階段（test.csv）：
+1. **Cleaning** - 同 train（但不移除 outliers）
+2. **Imputation** - 使用 train 的統計值
+3. **Feature Transformation** - 使用 train 的參數（scaler, encoder）
+4. **Prediction** - 使用訓練好的模型預測
 
 ---
 
 ## ⚙️ 配置說明
 
-所有訓練參數都定義在 `config/train_config.yaml` 中：
+所有訓練參數都定義在 `configs/default_config.yaml` 中：
 
-### 關鍵配置項
+### 配置結構
 
-**實驗設定**
 ```yaml
 experiment:
-  name: baseline_5fold_cv
-  seed: 42
-  description: "實驗描述"
-```
+  name: "baseline"                # 實驗名稱
+  description: "初始 baseline 實驗，使用 SMOTE 和預設參數"
 
-**資料路徑**
-```yaml
 data:
-  train_path: dataset/train.csv
-  test_path: dataset/test.csv
-  target_column: Gender
-```
+  train_path: "dataset/train.csv"
+  test_path: "dataset/test.csv"
+  drop_cols: ["id", "yt", "self_intro"]  # 無預測能力的欄位
+  target_col: "gender"
 
-**前處理**
-```yaml
-preprocessing:
-  numeric_imputer: median        # mean, median, most_frequent
-  categorical_imputer: most_frequent
-  scaling: standard              # standard, minmax, robust, none
-```
+features:
+  numeric_cols: ["height", "weight", "iq"]           # 一般數值特徵
+  numeric_log_cols: ["fb_friends"]                   # 長尾數值特徵（需 log 轉換）
+  categorical_cols: ["star_sign", "phone_os"]        # 無序類別特徵
+  ordinal_cols: ["sleepiness"]                       # 有序類別特徵
 
-**模型配置**
-```yaml
 model:
-  type: random_forest            # random_forest, xgboost, logistic_regression
+  xgb_params:
+    objective: "binary:logistic"
+    eval_metric: "logloss"
+    learning_rate: 0.1
+    max_depth: 6
+    random_state: 42
 
-  random_forest:
-    n_estimators: 200
-    max_depth: 10
-    class_weight: balanced
-```
-
-**訓練策略**
-```yaml
 training:
-  validation_strategy: cross_validation
-  n_folds: 5
-  stratified: true
-  balance_method: class_weight   # class_weight, smote, undersample
+  n_splits: 5            # 5-Fold Cross Validation
+  use_smote: true        # 是否使用 SMOTE 平衡數據
+  random_state: 42
+  save_dir: "experiments"  # 實驗結果保存目錄
 ```
 
----
+### 特徵處理細節
 
-## 🔧 工具使用規範
+#### 數值特徵處理
 
-### 1. 實驗命名規範
-
-建議使用清晰的實驗名稱，例如：
+**一般數值型（height, weight, iq）**
 ```
-baseline_v1              # 第一次 baseline
-rf_tuned_v1              # Random Forest 調參版本 1
-xgb_feature_eng_v2       # XGBoost + 特徵工程版本 2
-ensemble_final           # 最終 ensemble 模型
+中位數補值 → Clipping (1%-99%) → StandardScaler
 ```
 
-### 2. 配置管理原則
+**長尾數值型（fb_friends）** ⚠️ **重要**
+```
+中位數補值 → 移除負值 (clip to 0) → log(1+x) → StandardScaler
+```
+> 注意：數據中存在 -1000 這樣的負值，必須在 log1p 前處理，否則會產生 NaN
 
-**每次實驗都會自動保存完整配置**
-- 實驗配置會自動複製到 `results/{exp_name}/config.yaml`
-- 可以追溯每次實驗的完整設定
-- 方便複現實驗結果
+#### 類別特徵處理
 
-**修改配置流程**
-1. 複製 `config/train_config.yaml` 為新檔案 (可選)
-2. 修改參數
-3. 執行訓練: `python train.py --config config/new_config.yaml --exp_name new_exp`
+**無序類別（star_sign, phone_os）**
+```
+眾數補值 → One-Hot Encoding
+```
 
-### 3. 實驗記錄最佳實踐
+**有序類別（sleepiness: 1-5）**
+```
+眾數補值 → 保持數值型（維持順序關係）
+```
 
-**建議維護一個實驗記錄表 (可用 Excel 或 Markdown)**
+#### Target 處理
 
-| Exp Name | Date | Model | Features | CV Score | Notes |
-|----------|------|-------|----------|----------|-------|
-| baseline_v1 | 2026-03-20 | RF | Raw | 0.8234 | 初始 baseline |
-| rf_tuned_v1 | 2026-03-21 | RF | Raw | 0.8456 | 調整樹深度 |
-| ... | ... | ... | ... | ... | ... |
-
-### 4. Git 版本控制建議
-
-**應該提交的檔案**
-- 所有原始碼 (`src/`, `train.py`)
-- 配置檔案範本 (`config/train_config.yaml`)
-- 文件 (`README.md`, `workflow.md`)
-
-**不應該提交的檔案** (已在 `.gitignore`)
-- 實驗結果 (`results/`)
-- 訓練日誌 (`logs/`)
-- 訓練好的模型 (`*.pkl`)
-- 資料集檔案 (`dataset/*.csv`)
-
-### 5. 程式碼擴充指南
-
-**新增資料處理邏輯**
-- 編輯 `src/data.py`
-
-**新增特徵工程方法**
-- 編輯 `src/features.py`
-
-**新增模型類型**
-- 在 `src/models.py` 的 `create_model()` 函數中新增
-- 在 `config/train_config.yaml` 中新增對應配置
-
-**新增評估指標**
-- 編輯 `src/models.py` 的 `evaluate_model()` 函數
+**gender** - 二元分類
+- 原始數據: `1` = 男, `2` = 女
+- 訓練時轉換: `1` = 男, `0` = 女（模型內部使用）
+- 預測輸出轉換: `1` = 男, `2` = 女（還原為原始格式）
 
 ---
 
 ## 📊 評估指標
 
-預設計算以下指標（在每個 fold 上）：
+Cross-Validation 會輸出以下指標（每個 fold）：
 - **Accuracy**: 準確率
+- **F1-Score**: F1 分數
 - **Precision**: 精確率
 - **Recall**: 召回率
-- **F1 Score**: F1 分數
-- **ROC-AUC**: ROC 曲線下面積
 
-Cross-Validation 會輸出每個指標的：
-- **Mean**: 5 個 fold 的平均值
-- **Std**: 5 個 fold 的標準差
+最終輸出：
+- **Mean ± Std**: 5 個 fold 的平均值和標準差
 
 ---
 
-## 🐳 Docker 使用詳解
+## 📁 輸出檔案
 
-### Docker 架構說明
-
-專案使用 Docker Compose 管理容器，主要特點：
-
-**Volume 掛載**（本機 ↔️ 容器）
-```yaml
-./dataset     → /workspace/dataset (唯讀)
-./config      → /workspace/config
-./results     → /workspace/results (輸出)
-./logs        → /workspace/logs (輸出)
-./src         → /workspace/src (即時同步)
+### 訓練後產生（在 experiments/ 目錄下）：
+每次訓練會自動創建新的實驗資料夾：
+```
+experiments/
+├── experiment_log.csv          # 所有實驗的總記錄表
+└── exp_001_baseline/           # 實驗 1
+    ├── config.yaml             # 實驗配置
+    ├── cv_results.json         # 交叉驗證詳細結果
+    ├── preprocessor.pkl        # 特徵處理器
+    └── model.pkl               # 訓練好的模型
 ```
 
-**優點**：
-- ✅ 環境一致性（不同機器相同結果）
-- ✅ 隔離性（不影響本機環境）
-- ✅ 可攜性（輕鬆部署到雲端）
-- ✅ 即時開發（src/ 修改立即生效）
+**experiment_log.csv** 包含所有實驗的關鍵指標：
+- exp_id, timestamp, name, description
+- use_smote, learning_rate, max_depth
+- mean_accuracy, std_accuracy, mean_f1, std_f1
+- mean_precision, std_precision, mean_recall, std_recall
 
-### 常用 Docker 指令
+### 預測後產生：
+- `submission_exp_00X_name.csv` - 對應實驗的預測結果
+- `submission.csv` - 最新預測結果（通用版本）
+  ```csv
+  id,gender
+  1,1
+  2,2
+  ...
+  ```
+  > 注意：gender 值為 `1`（男）或 `2`（女），與原始數據格式一致
+
+---
+
+## 🔧 實驗流程建議
+
+### 1. Baseline 實驗（exp_001）
+```bash
+# 使用預設配置執行第一次訓練
+python main_train.py
+```
+系統會自動創建 `experiments/exp_001_baseline/`
+
+### 2. 調整配置進行迭代實驗
+編輯 `configs/default_config.yaml`：
+
+```yaml
+experiment:
+  name: "no_smote"             # 改變實驗名稱
+  description: "測試不使用 SMOTE 的效果"
+
+training:
+  use_smote: false             # 關閉 SMOTE
+```
 
 ```bash
-# 建立 image
-docker-compose build
-
-# 執行訓練（預設配置）
-docker-compose up
-
-# 背景執行
-docker-compose up -d
-
-# 查看日誌
-docker-compose logs -f
-
-# 停止容器
-docker-compose down
-
-# 進入容器互動
-docker-compose run boygirl-train bash
-
-# 在容器內執行自訂指令
-docker-compose run boygirl-train python train.py --exp_name test_v1
-
-# 清理所有（包含 volumes）
-docker-compose down -v
+# 執行實驗 2
+python main_train.py
 ```
+系統會自動創建 `experiments/exp_002_no_smote/`
 
-### Jupyter Notebook in Docker
-
-如果想在 Docker 中使用 Jupyter：
-
-1. 修改 `docker-compose.yml` 加入 port mapping：
+### 3. 調整模型參數實驗
 ```yaml
-ports:
-  - "8888:8888"
-command: jupyter notebook --ip=0.0.0.0 --no-browser --allow-root
+experiment:
+  name: "tuned_xgb"
+  description: "調整 XGBoost learning_rate 和 max_depth"
+
+model:
+  xgb_params:
+    learning_rate: 0.05         # 降低學習率
+    max_depth: 8                # 增加樹深度
 ```
 
-2. 執行：
 ```bash
-docker-compose up
-# 從日誌中複製 token，在瀏覽器開啟
+# 執行實驗 3
+python main_train.py
+```
+
+### 4. 比較實驗結果
+
+查看實驗總記錄：
+```bash
+# 查看所有實驗結果
+cat experiments/experiment_log.csv
+```
+
+或使用 Python：
+```python
+import pandas as pd
+df = pd.read_csv('experiments/experiment_log.csv')
+print(df[['exp_id', 'name', 'mean_accuracy', 'mean_f1']].sort_values('mean_f1', ascending=False))
+```
+
+### 5. 使用最佳模型預測
+
+```bash
+# 使用最新實驗（假設是最佳的）
+python main_predict.py
+
+# 或指定特定實驗編號（例如實驗 2 表現最好）
+python main_predict.py 2
 ```
 
 ---
 
-## 🐛 除錯指南
+## 🛠️ 進階使用
 
-### 常見問題
+### 修改特徵工程
 
-**1. 找不到資料檔案**
-```
-FileNotFoundError: [Errno 2] No such file or directory: 'dataset/train.csv'
-```
-→ 確認 `dataset/train.csv` 存在
+編輯 `src/features.py` 來調整特徵處理策略：
+- 修改 Clipping 百分位數（預設 1%-99%）
+- 改變補值策略（median/mean/mode）
+- 調整 Pipeline 順序
 
-**2. Target column 不存在**
-```
-ValueError: Target column 'Gender' not found
-```
-→ 檢查 `config/train_config.yaml` 中的 `target_column` 設定是否正確
+### 更換模型
 
-**3. 模組匯入失敗**
-```
-ModuleNotFoundError: No module named 'xgboost'
-```
-→ 安裝對應套件: `pip install xgboost`
+編輯 `src/models.py` 來更換分類器：
+```python
+# 例如改用 LightGBM
+from lightgbm import LGBMClassifier
 
-**4. Docker 權限問題（Linux/Mac）**
+def get_model(config):
+    return LGBMClassifier(**config['model']['lgb_params'])
 ```
-Permission denied: 'results/'
-```
-→ 檢查資料夾權限，或在 Dockerfile 中設定 USER
 
-**5. Docker build 失敗**
+### 自定義評估指標
+
+編輯 `src/evaluate.py` 來新增評估指標：
+```python
+from sklearn.metrics import roc_auc_score
+
+# 在 cross_validate_with_smote 中加入
+auc = roc_auc_score(y_val_fold, preds)
 ```
-ERROR: failed to solve: failed to compute cache key
-```
-→ 使用 `docker-compose build --no-cache` 清除快取重建
 
 ---
 
-## 📝 後續工作
+## 🐛 常見問題
 
-- [ ] 完成初步 EDA (notebooks/01_quick_eda.ipynb)
-- [ ] 執行 baseline 訓練
-- [ ] 特徵工程實驗
-- [ ] 超參數調優
-- [ ] 模型 ensemble
+### 1. RuntimeWarning: invalid value encountered in log1p
+**原因**: `fb_friends` 包含負值
+**解決**: 已在 `src/features.py` 的 `log_pipeline` 中加入 `clip_negative` 步驟
+
+### 2. ValueError: Input X contains NaN (SMOTE)
+**原因**: 特徵轉換後仍有 NaN 殘留
+**解決**: 確認所有 Pipeline 都有 Imputer，且順序正確（Imputation → Transformation）
+
+### 3. KeyError: 'gender'
+**原因**: Target 欄位名稱錯誤
+**解決**: 檢查 `configs/default_config.yaml` 中 `target_col` 設定
+
+### 4. 模型預測錯誤
+**原因**: 未訓練模型或 models_saved/ 不存在
+**解決**: 先執行 `python main_train.py` 再執行 `python main_predict.py`
 
 ---
 
-## 📞 聯絡資訊
+## 📝 重要注意事項
 
-**競賽**: Boy or Girl 2026 NEW | Kaggle
-**團隊**: TeamBD
+### ⚠️ Data Leakage 防範
+
+1. **補值（Imputation）必須在 Data Split 後執行**
+   - ✅ 正確：在每個 CV fold 內部分別 fit Imputer
+   - ❌ 錯誤：在整個 dataset 上先 fit Imputer
+
+2. **SMOTE 必須在 CV 內部執行**
+   - ✅ 正確：僅在 train fold 執行 SMOTE
+   - ❌ 錯誤：在切分前對整個數據執行 SMOTE
+
+3. **特徵轉換參數必須由 train 決定**
+   - ✅ 正確：`preprocessor.fit_transform(X_train)` + `preprocessor.transform(X_val)`
+   - ❌ 錯誤：分別 fit_transform train 和 validation
+
+### 📌 最佳實踐
+
+- **實驗命名規範**：使用有意義的名稱（baseline, no_smote, tuned_xgb, add_features 等）
+- **記錄實驗筆記**：在 config 的 description 中詳細說明實驗目的
+- **追蹤變更**：每次實驗只改變一個變量，方便分析影響
+- **保留實驗記錄**：`experiment_log.csv` 應提交到 Git，方便團隊協作
+- **定期清理**：實驗資料夾會佔用空間，表現不佳的實驗可以刪除（但保留 log）
+
+---
+
+## 📞 相關資源
+
+- **完整訓練流程**: [training_workflow_main.md](training_workflow_main.md)
+- **訓練啟動指南**: [start_train.md](start_train.md)
+- **競賽**: Boy or Girl 2026 NEW | Kaggle
+- **團隊**: TeamBD
 
 ---
 
 **祝訓練順利！🚀**
+

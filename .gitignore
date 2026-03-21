@@ -31,10 +31,18 @@ build/
 # Experiment outputs
 results/
 logs/
+models_saved/
 *.pkl
 *.joblib
 *.h5
 *.pth
+
+# Experiments directory (keep log only)
+experiments/exp_*/
+!experiments/experiment_log.csv
+
+# Submission files
+submission*.csv
 
 # Data files (large datasets)
 dataset/*.csv

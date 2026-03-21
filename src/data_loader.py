@@ -23,7 +23,8 @@ def load_and_clean_data(file_path, is_train=True, config=None):
         
         # 將性別進行 Label Encoding -> 男: 1, 女: 0 (依據您的定義)
         # 這裡支援字串或原生的轉換寫法
-        mapping = {'男': 1, '女': 0, 'Male': 1, 'Female': 0, 1: 1, 0: 0, '1': 1, '0': 0}
+        # 原始數據: 1=男, 2=女
+        mapping = {'男': 1, '女': 0, 'Male': 1, 'Female': 0, 1: 1, 2: 0, 0: 0, '1': 1, '0': 0}
         df[target] = df[target].map(mapping)
         
     return df

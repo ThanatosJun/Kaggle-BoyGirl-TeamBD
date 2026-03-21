@@ -1,0 +1,2 @@
+exp_id,timestamp,name,description,use_smote,learning_rate,max_depth,mean_accuracy,std_accuracy,mean_f1,std_f1,mean_precision,std_precision,mean_recall,std_recall
+exp_001_baseline,2026-03-21 17:35:36,baseline,初始 baseline 實驗，使用 SMOTE 和預設參數,True,0.1,6,0.8746778711484593,0.04062546017392287,0.9163977293535982,0.026571216892941413,0.9151023573200993,0.028057118618672987,0.9178075396825397,0.026952194282543876
