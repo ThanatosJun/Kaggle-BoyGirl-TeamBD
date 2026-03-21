@@ -438,6 +438,7 @@ def c3_oof_assembly_and_voting(oof_arrays_per_seed, test_preds_per_seed, origina
     return final_oof_probs, final_test_probs
 
 def run_module_c_engine(global_train, global_test, kfold_dict, y_train_full):
+    logging.info("Starting C1 & C2: In-Fold Standardization, KNN Imputation & Defensive Model Fitting (5 Folds x 5 Seeds)")
     SEEDS = [42, 2024, 777, 888, 123]
     original_train_len = global_train.shape[0]
     
