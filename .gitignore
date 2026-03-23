@@ -18,6 +18,3 @@ ENV/
 env.bak/
 venv.bak/
 boygirl_env/
-
-# Kaggle / execution artifacts
-submission_final.csv
