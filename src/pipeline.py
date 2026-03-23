@@ -4,6 +4,7 @@ import sys
 import scipy.sparse as sp
 import numpy as np
 import warnings
+from datetime import datetime
 from sklearn.model_selection import StratifiedKFold
 from sklearn.linear_model import LinearRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -556,8 +557,11 @@ def d3_format_alignment_and_reversal(test_binary_predictions, test_ids, sample_s
         logging.fatal(f"D3 Validation Failed: Invalid gender labels present: {submission_df['gender'].unique()}")
         sys.exit(1)
         
-    submission_df.to_csv("submission_final.csv", index=False)
-    logging.info("D3 validation passed! Final tactical submission exported strictly adhering to Kaggle API standard.")
+    timestamp = datetime.now().strftime("%Y%m%d%H%M")
+    output_filename = f"submission_final_{timestamp}.csv"
+    submission_df.to_csv(output_filename, index=False)
+    
+    logging.info(f"D3 validation passed! Final tactical submission exported explicitly as {output_filename} adhering to API standards.")
     return submission_df
 
 if __name__ == "__main__":
