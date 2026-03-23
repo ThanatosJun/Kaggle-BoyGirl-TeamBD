@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
 # Consolidated sklearn imports
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, StackingClassifier
 from sklearn.linear_model import LogisticRegression, Lasso
 from sklearn.feature_selection import RFECV, RFE, SelectFromModel, SelectKBest, f_classif
 from sklearn.impute import SimpleImputer, KNNImputer
@@ -85,6 +85,21 @@ imputer_cat = SimpleImputer(strategy=config.CATEGORICAL_IMPUTER_STRATEGY)
 if len(cat_cols) > 0:
     df[cat_cols] = imputer_cat.fit_transform(df[cat_cols])
 
+# 4. Feature Engineering (MUST run on raw imputed values, before scaling)
+print("\n--- Feature Engineering ---")
+if hasattr(config, 'FEATURE_ENGINEERING') and config.FEATURE_ENGINEERING:
+    print("Generating derived features...")
+    if 'height' in df.columns and 'weight' in df.columns:
+        df['bmi'] = df['weight'] / ((df['height'] / 100) ** 2)
+        df['bmi'] = df['bmi'].replace([np.inf, -np.inf], np.nan)
+        df['bmi'] = df['bmi'].fillna(df['bmi'].median())
+        df['height_weight_ratio'] = df['height'] / df['weight'].replace(0, np.nan)
+        df['height_weight_ratio'] = df['height_weight_ratio'].replace([np.inf, -np.inf], np.nan)
+        df['height_weight_ratio'] = df['height_weight_ratio'].fillna(df['height_weight_ratio'].median())
+        # Extend num_cols so the main scaler covers the new features too
+        num_cols = num_cols + ['bmi', 'height_weight_ratio']
+        print("  Added: bmi, height_weight_ratio")
+
 # Scaling
 scaler = None
 if hasattr(config, 'SCALING_STRATEGY') and config.SCALING_STRATEGY != 'none':
@@ -101,8 +116,6 @@ if hasattr(config, 'SCALING_STRATEGY') and config.SCALING_STRATEGY != 'none':
 
 print("Missing values after cleaning:", df.isnull().sum().sum())
 
-# 4. Feature Engineering
-print("\n--- Feature Engineering ---")
 # Encode Categorical Variables
 le_map = {}
 for col in cat_cols:
@@ -193,8 +206,11 @@ if config.USE_STRATIFY:
 print(f"\n--- Validation Strategy: {config.VALIDATION_STRATEGY} ---")
 
 model_type = config.MODEL_TYPE
-model_params = config.MODEL_PARAMS[model_type].copy()
-print(f"Initializing {model_type} with params: {model_params}")
+model_params = config.MODEL_PARAMS.get(model_type, {}).copy()
+if model_params:
+    print(f"Initializing {model_type} with params: {model_params}")
+else:
+    print(f"Initializing {model_type}")
 
 if model_type == 'random_forest':
     model = RandomForestClassifier(**model_params)
@@ -212,6 +228,38 @@ elif model_type == 'lightgbm':
     if LGBMClassifier is None:
         raise ImportError("lightgbm is not installed. Please install it or choose another model.")
     model = LGBMClassifier(**model_params)
+
+elif model_type == 'stacking':
+    base_estimators_cfg = getattr(config, 'STACKING_BASE_ESTIMATORS', ['random_forest', 'xgboost', 'gradient_boosting'])
+    base_estimators = []
+    for est_name in base_estimators_cfg:
+        est_params = config.MODEL_PARAMS.get(est_name, {}).copy()
+        if est_name == 'random_forest':
+            base_estimators.append(('rf', RandomForestClassifier(**est_params)))
+        elif est_name == 'gradient_boosting':
+            base_estimators.append(('gbm', GradientBoostingClassifier(**est_params)))
+        elif est_name == 'xgboost':
+            if XGBClassifier is None:
+                print("Warning: xgboost not installed, skipping from stacking.")
+            else:
+                base_estimators.append(('xgb', XGBClassifier(**est_params, eval_metric='logloss')))
+        elif est_name == 'lightgbm':
+            if LGBMClassifier is None:
+                print("Warning: lightgbm not installed, skipping from stacking.")
+            else:
+                base_estimators.append(('lgb', LGBMClassifier(**est_params)))
+    if not base_estimators:
+        raise ValueError("No valid base estimators for stacking. Check STACKING_BASE_ESTIMATORS.")
+    meta_params = config.MODEL_PARAMS.get('logistic_regression', {}).copy()
+    meta_learner = LogisticRegression(**meta_params)
+    model = StackingClassifier(
+        estimators=base_estimators,
+        final_estimator=meta_learner,
+        cv=5,
+        passthrough=False,
+        n_jobs=-1
+    )
+    print(f"Stacking ensemble: {[name for name, _ in base_estimators]} → LogisticRegression meta-learner")
 
 elif model_type == 'catboost':
     if CatBoostClassifier is None:
@@ -376,6 +424,16 @@ try:
     cat_cols_test = [c for c in cat_cols if c in test_df_clean.columns]
     if cat_cols_test:
         test_df_clean[cat_cols_test] = imputer_cat.transform(test_df_clean[cat_cols_test])
+
+    # --- Mirror feature engineering on test data (after imputation, before scaling) ---
+    if hasattr(config, 'FEATURE_ENGINEERING') and config.FEATURE_ENGINEERING:
+        if 'height' in test_df_clean.columns and 'weight' in test_df_clean.columns:
+            test_df_clean['bmi'] = test_df_clean['weight'] / ((test_df_clean['height'] / 100) ** 2)
+            test_df_clean['bmi'] = test_df_clean['bmi'].replace([np.inf, -np.inf], np.nan)
+            test_df_clean['bmi'] = test_df_clean['bmi'].fillna(test_df_clean['bmi'].median())
+            test_df_clean['height_weight_ratio'] = test_df_clean['height'] / test_df_clean['weight'].replace(0, np.nan)
+            test_df_clean['height_weight_ratio'] = test_df_clean['height_weight_ratio'].replace([np.inf, -np.inf], np.nan)
+            test_df_clean['height_weight_ratio'] = test_df_clean['height_weight_ratio'].fillna(test_df_clean['height_weight_ratio'].median())
 
     # Scaling
     if scaler and num_cols_test:
