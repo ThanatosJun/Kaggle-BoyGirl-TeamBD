@@ -22,9 +22,9 @@ def a1_unified_ingestion():
     Task A1: Unified Ingestion & Duplicate Eradication
     """
     logging.info("Starting A1: Unified Ingestion & Duplicate Eradication")
-    train_path = "boy or girl 2025 train_missingValue.csv"
-    test_path = "boy or girl 2025 test no ans_missingValue.csv"
-    sample_sub_path = "Boy_or_girl_test_sandbox_sample_submission.csv"
+    train_path = "data/raw/train.csv"
+    test_path = "data/raw/test.csv"
+    sample_sub_path = "data/raw/Boy_or_girl_test_sandbox_sample_submission.csv"
 
     try:
         train = pd.read_csv(train_path)
@@ -531,7 +531,7 @@ def d2_probability_translation(final_test_probs, optimal_threshold):
     logging.info(f"D2 validation passed! Translated probabilities to hard labels {unique_vals}")
     return test_binary_predictions
 
-def d3_format_alignment_and_reversal(test_binary_predictions, test_ids, sample_sub_path="Boy_or_girl_test_sandbox_sample_submission.csv"):
+def d3_format_alignment_and_reversal(test_binary_predictions, test_ids, sample_sub_path="data/raw/Boy_or_girl_test_sandbox_sample_submission.csv"):
     """
     Task D3: Format Alignment & Target Reversal
     """
@@ -558,9 +558,9 @@ def d3_format_alignment_and_reversal(test_binary_predictions, test_ids, sample_s
         logging.fatal(f"D3 Validation Failed: Invalid gender labels present: {submission_df['gender'].unique()}")
         sys.exit(1)
         
-    os.makedirs("submissions", exist_ok=True)
+    os.makedirs("g1014308/submissions", exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d%H%M")
-    output_filename = f"submissions/submission_final_{timestamp}.csv"
+    output_filename = f"g1014308/submissions/submission_final_{timestamp}.csv"
     submission_df.to_csv(output_filename, index=False)
     
     logging.info(f"D3 validation passed! Final tactical submission exported explicitly as {output_filename} adhering to API standards.")
