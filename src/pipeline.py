@@ -297,7 +297,7 @@ def b4_text_vectorization(train_df, test_df):
     test_rules = extract_rules(test_df)
     
     # 2. TF-IDF Vectorization
-    tfidf = TfidfVectorizer(analyzer='char_wb', ngram_range=(2, 4), max_features=1000)
+    tfidf = TfidfVectorizer(analyzer='char_wb', ngram_range=(2, 4), max_features=80)
     train_text = train_df['self_intro'].fillna('')
     test_text = test_df['self_intro'].fillna('')
     
@@ -382,10 +382,10 @@ def c2_defensive_model_fitting(X_train_imp, y_train, X_val_imp, y_val, X_test_im
     """
     
     model = LGBMClassifier(
-        max_depth=3,
-        min_child_samples=30,  # min_data_in_leaf
+        max_depth=4,
+        min_child_samples=15,  # Strategy relaxed: min_data_in_leaf
         class_weight='balanced',
-        reg_lambda=10.0,       # heavy L2 regularisation
+        reg_lambda=5.0,        # Strategy relaxed: heavy L2 regularisation
         subsample=0.8,
         colsample_bytree=0.8,
         n_estimators=500,
