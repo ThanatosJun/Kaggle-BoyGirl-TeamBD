@@ -1,6 +1,7 @@
 import pandas as pd
 import logging
 import sys
+import os
 import scipy.sparse as sp
 import numpy as np
 import warnings
@@ -557,8 +558,9 @@ def d3_format_alignment_and_reversal(test_binary_predictions, test_ids, sample_s
         logging.fatal(f"D3 Validation Failed: Invalid gender labels present: {submission_df['gender'].unique()}")
         sys.exit(1)
         
+    os.makedirs("submissions", exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d%H%M")
-    output_filename = f"submission_final_{timestamp}.csv"
+    output_filename = f"submissions/submission_final_{timestamp}.csv"
     submission_df.to_csv(output_filename, index=False)
     
     logging.info(f"D3 validation passed! Final tactical submission exported explicitly as {output_filename} adhering to API standards.")
