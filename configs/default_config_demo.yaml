@@ -1,0 +1,80 @@
+experiment:
+  name: "baseline"                # 實驗名稱（會自動加上編號）
+  description: "初始 baseline 實驗，使用 SMOTE 和預設參數"
+
+data:
+  train_path: "dataset/train.csv"
+  test_path: "dataset/test.csv"
+  drop_cols: ["id", "yt", "self_intro"]
+  target_col: "gender"
+  # 訓練時 target 映射（原始值 -> 模型訓練值）
+  # 目前定義：1=男, 2=女 -> 1=男, 0=女
+  target_train_mapping:
+    "男": 1
+    "女": 0
+    "Male": 1
+    "Female": 0
+    1: 1
+    2: 0
+    0: 0
+    "1": 1
+    "0": 0
+  # 預測輸出時映射（模型輸出值 -> 提交值）
+  target_output_mapping:
+    0: 2
+    1: 1
+
+features:
+  numeric_cols: ["height", "weight", "iq"]
+  numeric_log_cols: ["fb_friends"]
+  categorical_cols: ["star_sign", "phone_os"]
+  ordinal_cols: ["sleepiness"]
+
+preprocessing:
+  # Imputer 策略
+  numeric_imputer_strategy: "median"
+  categorical_imputer_strategy: "most_frequent"
+  ordinal_imputer_strategy: "most_frequent"
+  # 數值剪裁百分位數
+  clipping_lower_percentile: 1
+  clipping_upper_percentile: 99
+  # log 特徵在 log1p 前的下界（避免負值）
+  log_clip_min: 0
+  # scaler 選項: standard | minmax | robust | none
+  scaler: "standard"
+  # OneHotEncoder 設定
+  onehot_handle_unknown: "ignore"
+  onehot_sparse_output: false
+
+model:
+  # 可切換模型: xgboost | lightgbm
+  type: "xgboost"
+
+  xgb_params:
+    objective: "binary:logistic"
+    eval_metric: "logloss"
+    learning_rate: 0.1
+    max_depth: 6
+    random_state: 42
+    enable_categorical: false
+
+  lgbm_params:
+    objective: "binary"
+    learning_rate: 0.05
+    n_estimators: 300
+    num_leaves: 31
+    random_state: 42
+
+training:
+  n_splits: 5
+  use_smote: true
+  random_state: 42
+  save_dir: "experiments"
+  # SMOTE 可調參數
+  smote_params:
+    random_state: 42
+
+prediction:
+  # 預設模式: full | fold
+  default_mode: "full"
+  output_dir: "result"

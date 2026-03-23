@@ -24,10 +24,17 @@ Kaggle-BoyGirl-TeamBD/
 │   │   ├── config.yaml
 │   │   ├── cv_results.json
 │   │   ├── preprocessor.pkl
-│   │   └── model.pkl
+│   │   ├── model.pkl
+│   │   ├── fold_0_model.pkl
+│   │   ├── fold_0_preprocessor.pkl
+│   │   └── ...
 │   ├── exp_002_no_smote/    # 實驗 2
 │   │   └── ...
 │   └── ...
+├── result/                   # 預測輸出目錄（自動產生）
+│   ├── submission_full.csv
+│   ├── submission_fold.csv
+│   └── submission_exp_00X_name_{mode}.csv
 ├── main_train.py            # 主訓練腳本
 ├── main_predict.py          # 主預測腳本
 ├── training_workflow_main.md # 訓練流程文檔
@@ -70,6 +77,10 @@ python main_predict.py
 
 # 使用指定實驗編號的模型預測（例如實驗 2）
 python main_predict.py 2
+
+# 指定預測模式：full 或 fold
+python main_predict.py 2 full
+python main_predict.py 2 fold
 ```
 
 ---
@@ -90,7 +101,7 @@ python main_predict.py 2
    - **fb_friends：移除負值 + log(1+x) + StandardScaler** ⚠️
    - star_sign, phone_os：One-Hot Encoding
    - sleepiness：保持數值（有序特徵）
-6. **Model Training** - XGBoost + 5-Fold CV（SMOTE 在每個 fold 內部執行）
+6. **Model Training** - 可切換 xgboost / lightgbm / random_forest + 5-Fold CV（SMOTE 在每個 fold 內部執行）
 7. **Model Evaluation** - Accuracy, F1-Score, Precision, Recall
 
 ### Prediction 階段（test.csv）：
@@ -125,6 +136,7 @@ features:
   ordinal_cols: ["sleepiness"]                       # 有序類別特徵
 
 model:
+  type: "xgboost"            # xgboost | lightgbm | random_forest
   xgb_params:
     objective: "binary:logistic"
     eval_metric: "logloss"
@@ -198,8 +210,11 @@ experiments/
 └── exp_001_baseline/           # 實驗 1
     ├── config.yaml             # 實驗配置
     ├── cv_results.json         # 交叉驗證詳細結果
-    ├── preprocessor.pkl        # 特徵處理器
-    └── model.pkl               # 訓練好的模型
+  ├── preprocessor.pkl        # Full Train 特徵處理器
+  ├── model.pkl               # Full Train 模型
+  ├── fold_0_model.pkl        # Fold 0 模型
+  ├── fold_0_preprocessor.pkl # Fold 0 特徵處理器
+  └── ...
 ```
 
 **experiment_log.csv** 包含所有實驗的關鍵指標：
@@ -207,10 +222,14 @@ experiments/
 - use_smote, learning_rate, max_depth
 - mean_accuracy, std_accuracy, mean_f1, std_f1
 - mean_precision, std_precision, mean_recall, std_recall
+- full_train_accuracy, full_train_f1, full_train_precision, full_train_recall
+- full_train_metric_scope（`train_set_only_no_validation`）
 
 ### 預測後產生：
-- `submission_exp_00X_name.csv` - 對應實驗的預測結果
-- `submission.csv` - 最新預測結果（通用版本）
+- `result/submission_exp_00X_name_full.csv` - 對應實驗的 full 模式結果
+- `result/submission_exp_00X_name_fold.csv` - 對應實驗的 fold 模式結果
+- `result/submission_full.csv` - 最新 full 模式結果（通用版本）
+- `result/submission_fold.csv` - 最新 fold 模式結果（通用版本）
   ```csv
   id,gender
   1,1
@@ -288,6 +307,9 @@ python main_predict.py
 
 # 或指定特定實驗編號（例如實驗 2 表現最好）
 python main_predict.py 2
+
+# 使用 fold ensemble 預測
+python main_predict.py 2 fold
 ```
 
 ---
@@ -303,13 +325,10 @@ python main_predict.py 2
 
 ### 更換模型
 
-編輯 `src/models.py` 來更換分類器：
-```python
-# 例如改用 LightGBM
-from lightgbm import LGBMClassifier
-
-def get_model(config):
-    return LGBMClassifier(**config['model']['lgb_params'])
+編輯 `configs/default_config.yaml` 的 `model.type`：
+```yaml
+model:
+  type: "lightgbm"  # 或 "xgboost" / "random_forest"
 ```
 
 ### 自定義評估指標
@@ -339,7 +358,7 @@ auc = roc_auc_score(y_val_fold, preds)
 **解決**: 檢查 `configs/default_config.yaml` 中 `target_col` 設定
 
 ### 4. 模型預測錯誤
-**原因**: 未訓練模型或 models_saved/ 不存在
+**原因**: 未訓練模型或 `experiments/exp_xxx/` 缺少模型檔案
 **解決**: 先執行 `python main_train.py` 再執行 `python main_predict.py`
 
 ---

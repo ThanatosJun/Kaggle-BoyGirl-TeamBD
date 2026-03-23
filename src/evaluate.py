@@ -2,7 +2,32 @@ import copy
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.utils.class_weight import compute_sample_weight
 from imblearn.over_sampling import SMOTE
+
+
+def _resolve_class_weight_config(config):
+    """Return class_weight argument for sklearn utils from config, or None if disabled."""
+    training_cfg = config.get('training', {})
+    class_weight_cfg = training_cfg.get('class_weight', None)
+
+    if isinstance(class_weight_cfg, str):
+        lowered = class_weight_cfg.strip().lower()
+        if lowered in {'', 'none', 'null', 'false'}:
+            return None
+        return lowered
+
+    if isinstance(class_weight_cfg, dict):
+        normalized = {}
+        for key, value in class_weight_cfg.items():
+            cls_key = int(key) if str(key).isdigit() else key
+            normalized[cls_key] = float(value)
+        return normalized
+
+    if class_weight_cfg in (None, False):
+        return None
+
+    return class_weight_cfg
 
 def cross_validate_with_smote(X, y, preprocessor, model, config):
     """
@@ -13,6 +38,8 @@ def cross_validate_with_smote(X, y, preprocessor, model, config):
     n_splits = config['training']['n_splits']
     use_smote = config['training']['use_smote']
     random_state = config['training']['random_state']
+    smote_params = config.get('training', {}).get('smote_params', {'random_state': random_state})
+    class_weight_cfg = _resolve_class_weight_config(config)
 
     skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
     
@@ -36,12 +63,20 @@ def cross_validate_with_smote(X, y, preprocessor, model, config):
 
         # 3. 處理 Data Balance：對轉換後的訓練特徵進行 SMOTE
         if use_smote:
-            smote = SMOTE(random_state=random_state)
+            smote = SMOTE(**smote_params)
             X_train_trans, y_train_fold = smote.fit_resample(X_train_trans, y_train_fold)
 
         # 4. 訓練模型
         model_fold = copy.deepcopy(model)
-        model_fold.fit(X_train_trans, y_train_fold)
+        fit_kwargs = {}
+        if class_weight_cfg is not None:
+            fit_kwargs['sample_weight'] = compute_sample_weight(class_weight=class_weight_cfg, y=y_train_fold)
+
+        try:
+            model_fold.fit(X_train_trans, y_train_fold, **fit_kwargs)
+        except TypeError:
+            # Fallback for estimators that do not accept sample_weight.
+            model_fold.fit(X_train_trans, y_train_fold)
 
         # 5. 驗證與評估
         preds = model_fold.predict(X_val_trans)
@@ -56,7 +91,7 @@ def cross_validate_with_smote(X, y, preprocessor, model, config):
         metrics['precision'].append(prec)
         metrics['recall'].append(rec)
 
-        # 保存 fold 模型與 preprocessor
+        # 保存 fold 模型與該 fold 的 preprocessor
         fold_models.append(model_fold)
         fold_preprocessors.append(prep_fold)
 

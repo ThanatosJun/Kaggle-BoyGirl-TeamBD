@@ -1,0 +1,13 @@
+timestamp,experiment,mode,male_count,female_count,total_count,output_file
+2026-03-21 22:09:18,exp_006_RandomForest,full,290,136,426,result/submission_exp_006_RandomForest_full.csv
+2026-03-21 22:09:50,exp_006_RandomForest,fold,292,134,426,result/submission_exp_006_RandomForest_fold.csv
+2026-03-21 22:10:12,exp_005_RandomForest,fold,295,131,426,result/submission_exp_005_RandomForest_fold.csv
+2026-03-21 22:10:18,exp_005_RandomForest,full,291,135,426,result/submission_exp_005_RandomForest_full.csv
+2026-03-21 22:10:24,exp_004_RandomForest,full,295,131,426,result/submission_exp_004_RandomForest_full.csv
+2026-03-21 22:10:29,exp_004_RandomForest,fold,292,134,426,result/submission_exp_004_RandomForest_fold.csv
+2026-03-21 22:10:38,exp_003_LightGBM,full,288,138,426,result/submission_exp_003_LightGBM_full.csv
+2026-03-21 22:10:44,exp_003_LightGBM,fold,296,130,426,result/submission_exp_003_LightGBM_fold.csv
+2026-03-21 22:10:48,exp_002_LightGBM,full,293,133,426,result/submission_exp_002_LightGBM_full.csv
+2026-03-21 22:10:53,exp_002_LightGBM,fold,295,131,426,result/submission_exp_002_LightGBM_fold.csv
+2026-03-21 22:10:58,exp_006_RandomForest,full,290,136,426,result/submission_exp_006_RandomForest_full.csv
+2026-03-21 22:11:01,exp_006_RandomForest,fold,292,134,426,result/submission_exp_006_RandomForest_fold.csv

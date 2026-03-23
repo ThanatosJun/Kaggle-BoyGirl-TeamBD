@@ -3,12 +3,69 @@ import yaml
 import joblib
 import json
 import pandas as pd
+import numpy as np
 from datetime import datetime
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.model_selection import ParameterGrid
+from sklearn.utils.class_weight import compute_sample_weight
 
 from src.data_loader import load_and_clean_data, split_X_y
 from src.features import build_preprocessor
 from src.models import get_model
 from src.evaluate import cross_validate_with_smote
+
+
+def resolve_model_type(config):
+    raw_model_type = config.get('model', {}).get('type', 'xgboost').lower()
+    alias_map = {
+        'xgboost': 'xgboost',
+        'xgb': 'xgboost',
+        'lightgbm': 'lightgbm',
+        'lgbm': 'lightgbm',
+        'random_forest': 'random_forest',
+        'rf': 'random_forest'
+    }
+    model_type = alias_map.get(raw_model_type)
+    if model_type is None:
+        raise ValueError(
+            f"不支援的模型類型: {raw_model_type}，請使用 'xgboost'、'lightgbm' 或 'random_forest'"
+        )
+    return model_type
+
+
+def resolve_param_grid(config, model_type, search_cfg):
+    """Resolve selectable param grid by mode: quick/full."""
+    model_cfg = config.get('model', {})
+    grid_mode = str(search_cfg.get('param_grid_mode', 'full')).lower()
+
+    if grid_mode == 'quick':
+        return model_cfg.get('param_grid_quick', {}).get(model_type, {})
+
+    return model_cfg.get('param_grid', {}).get(model_type, {})
+
+
+def resolve_class_weight_config(config):
+    """Return class_weight argument for sklearn utils from config, or None if disabled."""
+    training_cfg = config.get('training', {})
+    class_weight_cfg = training_cfg.get('class_weight', None)
+
+    if isinstance(class_weight_cfg, str):
+        lowered = class_weight_cfg.strip().lower()
+        if lowered in {'', 'none', 'null', 'false'}:
+            return None
+        return lowered
+
+    if isinstance(class_weight_cfg, dict):
+        normalized = {}
+        for key, value in class_weight_cfg.items():
+            cls_key = int(key) if str(key).isdigit() else key
+            normalized[cls_key] = float(value)
+        return normalized
+
+    if class_weight_cfg in (None, False):
+        return None
+
+    return class_weight_cfg
 
 def get_next_experiment_id(base_dir):
     """獲取下一個實驗編號"""
@@ -45,7 +102,12 @@ def save_experiment_log(base_dir, exp_folder, config, metrics, timestamp):
         'mean_precision': metrics['mean_precision'],
         'std_precision': metrics['std_precision'],
         'mean_recall': metrics['mean_recall'],
-        'std_recall': metrics['std_recall']
+        'std_recall': metrics['std_recall'],
+        'full_train_accuracy': metrics.get('full_train_accuracy'),
+        'full_train_f1': metrics.get('full_train_f1'),
+        'full_train_precision': metrics.get('full_train_precision'),
+        'full_train_recall': metrics.get('full_train_recall'),
+        'full_train_metric_scope': metrics.get('full_train_metric_scope', 'train_set_only_no_validation')
     }
 
     # 如果檔案不存在，創建新檔案
@@ -100,13 +162,66 @@ def main():
     # 6. 建立 Pipeline 元件與模型
     print("🛠️ 正在建立 Preprocessor 特徵工程管線 與 模型...")
     preprocessor = build_preprocessor(config)
-    model = get_model(config)
 
-    # 7. 執行 5-Fold CV 進行可靠的效能評估
-    cv_metrics, fold_models, fold_preprocessors = cross_validate_with_smote(X, y, preprocessor, model, config)
+    # 7. 可選：執行搜尋網格挑選最佳參數
+    search_cfg = config.get('search', {})
+    search_enabled = search_cfg.get('enabled', False)
+    search_metric = search_cfg.get('metric', 'f1')
+    model_type = resolve_model_type(config)
+    param_grid = resolve_param_grid(config, model_type, search_cfg)
+
+    if search_enabled and param_grid:
+        print(f"\n🔎 開始搜尋網格（model={model_type}, metric={search_metric}）...")
+        best_score = float('-inf')
+        best_params = None
+        best_cv_metrics = None
+        best_fold_models = None
+        best_fold_preprocessors = None
+
+        for idx, params in enumerate(ParameterGrid(param_grid), start=1):
+            print(f"\n[{idx}] 測試參數: {params}")
+            candidate_model = get_model(config, override_params=params)
+            cv_metrics_tmp, fold_models_tmp, fold_preprocessors_tmp = cross_validate_with_smote(
+                X, y, preprocessor, candidate_model, config
+            )
+
+            if search_metric not in cv_metrics_tmp:
+                raise ValueError(f"search.metric={search_metric} 不支援，可選: accuracy|f1|precision|recall")
+
+            score = float(np.mean(cv_metrics_tmp[search_metric]))
+            print(f"➡️ mean_{search_metric}: {score:.6f}")
+
+            if score > best_score:
+                best_score = score
+                best_params = params
+                best_cv_metrics = cv_metrics_tmp
+                best_fold_models = fold_models_tmp
+                best_fold_preprocessors = fold_preprocessors_tmp
+
+        print(f"\n✅ 搜尋網格完成，最佳參數: {best_params}")
+        print(f"✅ 最佳 mean_{search_metric}: {best_score:.6f}")
+
+        # 使用最佳參數建立最終模型，並沿用最佳 CV 結果
+        model = get_model(config, override_params=best_params)
+        cv_metrics = best_cv_metrics
+        fold_models = best_fold_models
+        fold_preprocessors = best_fold_preprocessors
+
+        # 保存最佳參數
+        best_params_path = os.path.join(exp_path, 'best_params.json')
+        with open(best_params_path, 'w', encoding='utf-8') as f:
+            json.dump({
+                'model_type': model_type,
+                'search_metric': search_metric,
+                'best_score': best_score,
+                'best_params': best_params
+            }, f, indent=2, ensure_ascii=False)
+        print(f"💾 已保存最佳參數: {best_params_path}")
+    else:
+        model = get_model(config)
+        cv_metrics, fold_models, fold_preprocessors = cross_validate_with_smote(X, y, preprocessor, model, config)
 
     # 8. 計算平均指標
-    import numpy as np
     metrics_summary = {
         'mean_accuracy': np.mean(cv_metrics['accuracy']),
         'std_accuracy': np.std(cv_metrics['accuracy']),
@@ -124,7 +239,40 @@ def main():
         }
     }
 
-    # 9. 保存 CV 結果
+    if search_enabled and param_grid:
+        metrics_summary['search_enabled'] = True
+        metrics_summary['search_metric'] = search_metric
+        metrics_summary['search_model_type'] = model_type
+
+    # 9. 在「所有」訓練資料上，訓練最終正式模型
+    print("\n🚀 正在使用「所有訓練集」訓練最終對外預測模型...")
+    X_trans = preprocessor.fit_transform(X)
+
+    if config['training']['use_smote']:
+        from imblearn.over_sampling import SMOTE
+        smote_params = config.get('training', {}).get('smote_params', {'random_state': config['training']['random_state']})
+        smote = SMOTE(**smote_params)
+        X_trans, y = smote.fit_resample(X_trans, y)
+
+    fit_kwargs = {}
+    class_weight_cfg = resolve_class_weight_config(config)
+    if class_weight_cfg is not None:
+        fit_kwargs['sample_weight'] = compute_sample_weight(class_weight=class_weight_cfg, y=y)
+
+    try:
+        model.fit(X_trans, y, **fit_kwargs)
+    except TypeError:
+        model.fit(X_trans, y)
+
+    # 10a. 計算 Full Train 指標（供實驗記錄對比 CV 與 Full Train）
+    full_train_preds = model.predict(X_trans)
+    metrics_summary['full_train_accuracy'] = accuracy_score(y, full_train_preds)
+    metrics_summary['full_train_f1'] = f1_score(y, full_train_preds, zero_division=0)
+    metrics_summary['full_train_precision'] = precision_score(y, full_train_preds, zero_division=0)
+    metrics_summary['full_train_recall'] = recall_score(y, full_train_preds, zero_division=0)
+    metrics_summary['full_train_metric_scope'] = 'train_set_only_no_validation'
+
+    # 10. 保存 CV + Full Train 結果
     results_path = os.path.join(exp_path, 'cv_results.json')
     with open(results_path, 'w', encoding='utf-8') as f:
         # 將 numpy 類型轉換為 Python 原生類型
@@ -133,18 +281,7 @@ def main():
                             for k2, v2 in v.items()} if isinstance(v, dict) else v)
                        for k, v in metrics_summary.items()}
         json.dump(json_metrics, f, indent=2, ensure_ascii=False)
-    print(f"💾 已保存 CV 結果: {results_path}")
-
-    # 10. 在「所有」訓練資料上，訓練最終正式模型
-    print("\n🚀 正在使用「所有訓練集」訓練最終對外預測模型...")
-    X_trans = preprocessor.fit_transform(X)
-
-    if config['training']['use_smote']:
-        from imblearn.over_sampling import SMOTE
-        smote = SMOTE(random_state=config['training']['random_state'])
-        X_trans, y = smote.fit_resample(X_trans, y)
-
-    model.fit(X_trans, y)
+    print(f"💾 已保存 CV + Full Train 結果: {results_path}")
 
     # 11. 儲存模型與特徵處理器
     prep_path = os.path.join(exp_path, 'preprocessor.pkl')
@@ -155,8 +292,8 @@ def main():
     print(f"💾 已保存 Preprocessor: {prep_path}")
     print(f"💾 已保存 Model: {model_path}")
 
-    # 11a. 儲存 5 個 Fold 的模型與 Preprocessor（用於 Ensemble 預測）
-    print(f"\n💾 儲存 Fold 模型與 Preprocessor...")
+    # 11a. 儲存 Fold 模型與 Fold Preprocessor（用於 Ensemble 預測）
+    print(f"\n💾 儲存 Fold 模型與 Fold Preprocessor...")
     for fold_idx, (fold_model, fold_prep) in enumerate(zip(fold_models, fold_preprocessors)):
         fold_model_path = os.path.join(exp_path, f'fold_{fold_idx}_model.pkl')
         fold_prep_path = os.path.join(exp_path, f'fold_{fold_idx}_preprocessor.pkl')
@@ -176,6 +313,11 @@ def main():
     print(f"  - F1-Score:  {metrics_summary['mean_f1']:.4f} (± {metrics_summary['std_f1']:.4f})")
     print(f"  - Precision: {metrics_summary['mean_precision']:.4f} (± {metrics_summary['std_precision']:.4f})")
     print(f"  - Recall:    {metrics_summary['mean_recall']:.4f} (± {metrics_summary['std_recall']:.4f})")
+    print(f"\n📌 Full Train（訓練集表現，無 validation，僅供參考）:")
+    print(f"  - Accuracy:  {metrics_summary['full_train_accuracy']:.4f}")
+    print(f"  - F1-Score:  {metrics_summary['full_train_f1']:.4f}")
+    print(f"  - Precision: {metrics_summary['full_train_precision']:.4f}")
+    print(f"  - Recall:    {metrics_summary['full_train_recall']:.4f}")
     print(f"{'='*60}\n")
 
 if __name__ == "__main__":

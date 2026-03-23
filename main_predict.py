@@ -4,6 +4,7 @@ import joblib
 import pandas as pd
 import numpy as np
 import sys
+from datetime import datetime
 
 from src.data_loader import load_and_clean_data
 
@@ -27,28 +28,45 @@ def main():
         config = yaml.safe_load(f)
 
     base_dir = config['training']['save_dir']
+    pred_cfg = config.get('prediction', {})
+    output_dir = pred_cfg.get('output_dir', 'result')
+    default_mode = pred_cfg.get('default_mode', 'full').lower()
+    valid_modes = ["fold", "full"]
 
-    # 決定預測模式：fold 或 full
-    predict_mode = "full"  # 預設為 full
-    if len(sys.argv) > 2:
-        predict_mode = sys.argv[2].lower()
-    
-    if predict_mode not in ["fold", "full"]:
+    # 2. 解析命令列參數
+    # 支援：
+    # - python main_predict.py                -> 最新實驗 + full
+    # - python main_predict.py fold           -> 最新實驗 + fold
+    # - python main_predict.py 3              -> 指定實驗 + full
+    # - python main_predict.py 3 fold         -> 指定實驗 + fold
+    args = sys.argv[1:]
+    predict_mode = default_mode
+    exp_id = None
+
+    if len(args) == 1:
+        if args[0].lower() in valid_modes:
+            predict_mode = args[0].lower()
+        else:
+            exp_id = args[0]
+    elif len(args) >= 2:
+        exp_id = args[0]
+        predict_mode = args[1].lower()
+
+    if predict_mode not in valid_modes:
         print(f"❌ 無效的預測模式: {predict_mode} (應為 'fold' 或 'full')")
         return
 
-    # 2. 決定使用哪個實驗（預設使用最新的）
-    if len(sys.argv) > 1:
-        # 如果有提供參數，使用指定的實驗
-        exp_id = sys.argv[1]
-        exp_folder = f"exp_{int(exp_id):03d}_*"
+    # 3. 決定使用哪個實驗（預設使用最新的）
+    if exp_id is not None:
+        if not str(exp_id).isdigit():
+            print(f"❌ 無效的實驗編號: {exp_id}（應為整數，例如 3）")
+            return
         matching = [f for f in os.listdir(base_dir) if f.startswith(f"exp_{int(exp_id):03d}_")]
         if not matching:
             print(f"❌ 找不到實驗 {exp_id}")
             return
         exp_folder = matching[0]
     else:
-        # 使用最新的實驗
         exp_folder = get_latest_experiment(base_dir)
 
     exp_path = os.path.join(base_dir, exp_folder)
@@ -69,12 +87,13 @@ def main():
 
     # 3. 根據模式載入相應的模型
     if predict_mode == "fold":
-        # 載入 5 個 fold 的模型與 preprocessor
-        print(f"🧠 載入 5 個 Fold 的模型與 Preprocessor...")
+        n_splits = config['training']['n_splits']
+        print(f"🧠 載入 {n_splits} 個 Fold 模型與對應 Preprocessor...")
+        
+        # 載入每個 fold 的模型與對應 preprocessor
         fold_models = []
         fold_preprocessors = []
-        
-        for fold_idx in range(5):
+        for fold_idx in range(n_splits):
             fold_model_path = os.path.join(exp_path, f'fold_{fold_idx}_model.pkl')
             fold_prep_path = os.path.join(exp_path, f'fold_{fold_idx}_preprocessor.pkl')
             
@@ -84,7 +103,7 @@ def main():
             
             fold_models.append(joblib.load(fold_model_path))
             fold_preprocessors.append(joblib.load(fold_prep_path))
-            print(f"   ✓ Fold {fold_idx} 已載入")
+            print(f"   ✓ Fold {fold_idx} 模型與 Preprocessor 已載入")
 
         # 進行 Ensemble 預測（投票）
         print("🔮 進行 Ensemble 預測（投票模式）...")
@@ -124,12 +143,11 @@ def main():
     # 6. 將預測結果轉換回原始格式
     # 模型輸出: 0=女, 1=男
     # 需要轉換為: 2=女, 1=男（符合原始數據格式）
-    preds_original = preds.copy()
-    preds_original[preds == 0] = 2  # 女生：0 → 2
-    # 男生保持 1 不變
+    output_mapping_raw = config.get('data', {}).get('target_output_mapping', {0: 2, 1: 1})
+    output_mapping = {int(k): int(v) for k, v in output_mapping_raw.items()}
+    preds_original = pd.Series(preds).map(output_mapping).fillna(pd.Series(preds)).astype(int).to_numpy()
 
     # 7. 輸出提交檔
-    output_dir = "result"
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, f"submission_{exp_folder}_{predict_mode}.csv")
     latest_file = os.path.join(output_dir, f"submission_{predict_mode}.csv")
@@ -148,13 +166,36 @@ def main():
     submission.to_csv(output_file, index=False)
     submission.to_csv(latest_file, index=False)
 
+    # 8. 記錄每次預測的男/女生數量
+    male_count = int((preds_original == 1).sum())
+    female_count = int((preds_original == 2).sum())
+    total_count = int(len(preds_original))
+    stats_log_file = os.path.join(output_dir, 'prediction_stats_log.csv')
+    stats_record = pd.DataFrame([
+        {
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'experiment': exp_folder,
+            'mode': predict_mode,
+            'male_count': male_count,
+            'female_count': female_count,
+            'total_count': total_count,
+            'output_file': output_file,
+        }
+    ])
+
+    if os.path.exists(stats_log_file):
+        stats_record.to_csv(stats_log_file, mode='a', index=False, header=False)
+    else:
+        stats_record.to_csv(stats_log_file, index=False)
+
     print(f"✅ 完成！")
     print(f"   - {output_file} (帶實驗編號與模式)")
     print(f"   - {latest_file} (模式版本)")
+    print(f"   - {stats_log_file} (預測統計紀錄)")
     print(f"\n📊 預測統計:")
-    print(f"   - 男生 (1): {(preds_original == 1).sum()} 筆")
-    print(f"   - 女生 (2): {(preds_original == 2).sum()} 筆")
-    print(f"   - 總計: {len(preds_original)} 筆")
+    print(f"   - 男生 (1): {male_count} 筆")
+    print(f"   - 女生 (2): {female_count} 筆")
+    print(f"   - 總計: {total_count} 筆")
 
 if __name__ == "__main__":
     main()

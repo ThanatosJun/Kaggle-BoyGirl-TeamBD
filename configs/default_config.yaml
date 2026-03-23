@@ -1,12 +1,28 @@
 experiment:
-  name: "baseline"                # 實驗名稱（會自動加上編號）
-  description: "初始 baseline 實驗，使用 SMOTE 和預設參數"
+  name: "RandomForest"  # 實驗名稱（會自動加上編號）
+  description: "使用 Random Forest 實驗，使用 class_weight 平衡"
 
 data:
   train_path: "dataset/train.csv"
   test_path: "dataset/test.csv"
   drop_cols: ["id", "yt", "self_intro"]
   target_col: "gender"
+  # 訓練映射：原始標籤 -> 模型內部標籤
+  # 目前：男=1，女=0
+  target_train_mapping:
+    "男": 1
+    "女": 0
+    "Male": 1
+    "Female": 0
+    1: 1
+    2: 0
+    0: 0
+    "1": 1
+    "0": 0
+  # 提交映射：模型內部標籤 -> 輸出標籤
+  target_output_mapping:
+    0: 2
+    1: 1
 
 features:
   numeric_cols: ["height", "weight", "iq"]
@@ -14,7 +30,26 @@ features:
   categorical_cols: ["star_sign", "phone_os"]
   ordinal_cols: ["sleepiness"]
 
+preprocessing:
+  # 缺失值策略
+  numeric_imputer_strategy: "median"
+  categorical_imputer_strategy: "most_frequent"
+  ordinal_imputer_strategy: "most_frequent"
+  # 數值剪裁百分位數（避免極端值）
+  clipping_lower_percentile: 1
+  clipping_upper_percentile: 99
+  # log 特徵在 log1p 前下界（避免負值）
+  log_clip_min: 0
+  # scaler: standard | minmax | robust | none
+  scaler: "standard"
+  # OneHotEncoder 設定
+  onehot_handle_unknown: "ignore"
+  onehot_sparse_output: false
+
 model:
+  # 可切換模型：xgboost | lightgbm | random_forest
+  type: "random_forest"
+
   xgb_params:
     objective: "binary:logistic"
     eval_metric: "logloss"
@@ -23,8 +58,82 @@ model:
     random_state: 42
     enable_categorical: false
 
+  lgbm_params:
+    objective: "binary"
+    learning_rate: 0.03
+    n_estimators: 500
+    num_leaves: 15
+    max_depth: 5
+    min_child_samples: 30
+    feature_fraction: 0.8
+    bagging_fraction: 0.8
+    bagging_freq: 1
+    reg_lambda: 2.0
+    reg_alpha: 0.5
+    verbosity: -1
+    random_state: 42
+
+  random_forest_params:
+    n_estimators: 400
+    max_depth: 10
+    min_samples_split: 5
+    min_samples_leaf: 3
+    max_features: "sqrt"
+    # 建議由 training.class_weight 統一控制，避免重複加權
+    class_weight: null
+    n_jobs: -1
+    random_state: 42
+
+  # 網格搜尋空間（依 model.type 讀取）
+  param_grid:
+    xgboost:
+      learning_rate: [0.03, 0.05, 0.1]
+      max_depth: [4, 6, 8]
+    lightgbm:
+      learning_rate: [0.03, 0.05]
+      num_leaves: [15, 31]
+      max_depth: [4, 5, 6]
+    random_forest:
+      n_estimators: [300, 400, 600]
+      max_depth: [8, 10, 12]
+      min_samples_leaf: [2, 3, 5]
+      min_samples_split: [5, 10]
+
+  # 小型網格（快速實驗）
+  param_grid_quick:
+    xgboost:
+      learning_rate: [0.05, 0.1]
+      max_depth: [4, 6]
+    lightgbm:
+      learning_rate: [0.03, 0.05]
+      num_leaves: [15]
+      max_depth: [4, 5]
+    random_forest:
+      n_estimators: [300, 400]
+      max_depth: [8, 10]
+      min_samples_leaf: [2, 3]
+      min_samples_split: [5, 10]
+
+search:
+  enabled: false
+  # param_grid_mode: quick | full
+  param_grid_mode: quick
+  metric: "f1"  # accuracy | f1 | precision | recall
+
 training:
   n_splits: 5
-  use_smote: true
+  # 資料平衡方法（可與 class_weight 二擇一或並用）
+  use_smote: false
+  # 統一 class_weight（適用 xgboost / lightgbm / random_forest）
+  # 可選：null | balanced | {0: 1.5, 1: 1.0}
+  class_weight: balanced
   random_state: 42
   save_dir: "experiments"
+  # SMOTE 參數（use_smote=true 時生效）
+  smote_params:
+    random_state: 42
+
+prediction:
+  # 預設模式：full | fold
+  default_mode: "full"
+  output_dir: "result"

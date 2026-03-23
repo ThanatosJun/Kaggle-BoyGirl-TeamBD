@@ -9,19 +9,19 @@ Kaggle-BoyGirl-TeamBD/
 ├── configs/                  # 存放所有的超參數與實驗設定
 │   ├── default_config.yaml   # 模型參數、特徵欄位定義、實驗設定
 │   └── ...
-├── data/                     # 存放原始與處理後的資料 (建議加入 .gitignore)
-│   ├── raw/                  # train.csv, test.csv
-│   └── processed/            # 存放拆分或轉換後的中繼資料 (可選)
+├── dataset/                  # 存放原始資料（train.csv, test.csv）
 ├── src/                      # 核心 Pipeline 模組程式碼
 │   ├── __init__.py
 │   ├── data_loader.py        # 負責讀取與初步清理 (Cleaning, Drop columns)
 │   ├── features.py           # 核心模組：定義各種 Transformer 與 Pipeline
-│   ├── models.py             # 模型封裝 (XGBoost)
+│   ├── models.py             # 模型工廠（xgboost / lightgbm / random_forest）
 │   ├── evaluate.py           # CV 迴圈、Metrics 計算與紀錄
-│   └── predict.py            # 推論模組 (負責讀取測試集並產生 submission.csv)
+│   └── ...
 ├── notebooks/                # EDA 與實驗 (如 01_quick_eda.ipynb)
 ├── main_train.py             # 程式進入點：執行完整訓練流程 (讀資料 -> 組裝 Pipeline -> 訓練 -> 存檔)
-├── main_predict.py           # 程式進入點：執行推論流程
+├── main_predict.py           # 程式進入點：執行推論流程（full / fold 模式）
+├── experiments/              # 實驗輸出（config/cv/model/fold artifacts）
+├── result/                   # submission 輸出目錄
 └── requirements.txt          # 套件版本依賴
 ```
 
@@ -38,9 +38,8 @@ Kaggle-BoyGirl-TeamBD/
   - **Drop 特徵**：丟棄 `id`, `yt`, `self_intro`。
   - **Label Encoding**：將 Target (`gender`) 轉為 `0` 和 `1`。
   - 移除「絕對不合理」的異常行（如有人身高寫 -5 cm）。
-- **函式 `split_data(df)`**：
-  - 將資料切分為 `X_train`, `X_val`, `y_train`, `y_val`。
-  - *確保切分在所有特徵工程之前進行！*
+- **函式 `split_X_y(df, config)`**：
+  - 拆分為 `X` 與 `y`，供後續 CV 使用。
 
 ### 2. `src/features.py` 
 **負責步驟**：Imputation、Feature Transformation (Scaling, One-Hot, Ordinal)、Feature Selection
@@ -61,9 +60,9 @@ Kaggle-BoyGirl-TeamBD/
 
 ### 3. `src/models.py`
 **負責步驟**：Model Selection
-- **類別 `XGBoostTrainer`**：
-  - 封裝 XGBClassifier。
-  - 統一吃 `configs/` 的參數（如 `learning_rate`, `max_depth` 等）。
+- **函式 `get_model(config, override_params=None)`**：
+  - 根據 `model.type` 建立模型（xgboost / lightgbm / random_forest）。
+  - 可接收 `override_params`（供搜尋網格覆寫）。
 
 ### 4. `src/evaluate.py`
 **負責步驟**：Data Balance (SMOTE)、Model Training (5-fold CV)、Model Evaluation
@@ -82,7 +81,7 @@ Kaggle-BoyGirl-TeamBD/
 **負責步驟**：串接所有的流程 (The Orchestrator)
 1. 呼叫 `data_loader.py` 讀取並切分 `train.csv`。
 2. 呼叫 `features.py` 取得定義好的 `preprocessor`。
-3. 呼叫 `models.py` 實例化 XGBoost。
+3. 呼叫 `models.py` 依 `model.type` 實例化模型。
 4. 將 `preprocessor` 和 `model` 組合在一起 (或統稱為 `model_pipeline`)。
 5. 傳入 `evaluate.py` 跑完 5-Fold，印出成績。
 6. (最後) 將 `preprocessor` 和 `model` 使用 `joblib` 或 `pickle` 儲存為檔案（給預測時使用）。
@@ -90,6 +89,8 @@ Kaggle-BoyGirl-TeamBD/
 ### 6. `main_predict.py`
 **負責步驟**：Prediction 規劃順序
 1. 載入 `test.csv` 並通過 `data_loader` 進行基本清理。
-2. **載入訓練好的** `preprocessor.pkl` 與 `model.pkl`。
-3. **關鍵：** 執行 `preprocessor.transform(X_test)` (*絕對不要呼叫 fit*)。
-4. 執行模型預測，並輸出 `submission.csv`。
+2. 依模式載入模型：
+  - `full`：`preprocessor.pkl` + `model.pkl`
+  - `fold`：`fold_i_preprocessor.pkl` + `fold_i_model.pkl`（投票集成）
+3. **關鍵：** 僅執行 `transform(X_test)` (*絕對不要呼叫 fit*)。
+4. 執行模型預測，並輸出至 `result/` 目錄。

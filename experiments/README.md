@@ -10,8 +10,11 @@ experiments/
 ├── exp_001_baseline/           # 實驗 1
 │   ├── config.yaml             # 實驗配置（完整保存）
 │   ├── cv_results.json         # 交叉驗證詳細結果
-│   ├── preprocessor.pkl        # 特徵處理器（不提交到 Git）
-│   └── model.pkl               # 訓練好的模型（不提交到 Git）
+│   ├── preprocessor.pkl        # Full Train 特徵處理器（不提交到 Git）
+│   ├── model.pkl               # Full Train 模型（不提交到 Git）
+│   ├── fold_0_model.pkl        # Fold 0 模型（不提交到 Git）
+│   ├── fold_0_preprocessor.pkl # Fold 0 特徵處理器（不提交到 Git）
+│   └── ...
 ├── exp_002_no_smote/           # 實驗 2
 │   └── ...
 └── ...
@@ -36,8 +39,8 @@ experiments/
 | name | 實驗名稱 |
 | description | 實驗描述 |
 | use_smote | 是否使用 SMOTE |
-| learning_rate | XGBoost 學習率 |
-| max_depth | XGBoost 最大深度 |
+| learning_rate | 配置中的 learning_rate（目前取自 xgb_params） |
+| max_depth | 配置中的 max_depth（目前取自 xgb_params） |
 | mean_accuracy | 平均準確率 |
 | std_accuracy | 準確率標準差 |
 | mean_f1 | 平均 F1 分數 |
@@ -46,6 +49,13 @@ experiments/
 | std_precision | 精確率標準差 |
 | mean_recall | 平均召回率 |
 | std_recall | 召回率標準差 |
+| full_train_accuracy | Full Train 準確率（訓練集） |
+| full_train_f1 | Full Train F1（訓練集） |
+| full_train_precision | Full Train 精確率（訓練集） |
+| full_train_recall | Full Train 召回率（訓練集） |
+| full_train_metric_scope | 指標範圍註記（train_set_only_no_validation） |
+
+若有啟用搜尋網格，對應實驗資料夾也會產生 `best_params.json`。
 
 ## 查看實驗結果
 
@@ -81,6 +91,9 @@ python main_predict.py
 
 # 使用實驗 3 的模型
 python main_predict.py 3
+
+# 使用實驗 3 的 fold ensemble 模式
+python main_predict.py 3 fold
 ```
 
 ## 管理實驗

@@ -1,6 +1,23 @@
 import pandas as pd
 import numpy as np
 
+
+def _build_target_mapping(config):
+    default_mapping = {
+        '男': 1, '女': 0,
+        'Male': 1, 'Female': 0,
+        1: 1, 2: 0, 0: 0,
+        '1': 1, '0': 0
+    }
+    raw_mapping = config.get('data', {}).get('target_train_mapping', default_mapping)
+
+    mapping = {}
+    for k, v in raw_mapping.items():
+        mapping[k] = v
+        # 同步保存字串鍵，提升穩健性（CSV 讀取可能把數字讀成字串）
+        mapping[str(k)] = v
+    return mapping
+
 def load_and_clean_data(file_path, is_train=True, config=None):
     """
     讀取資料並進行基礎清理：包含丟掉無用特徵與格式轉換。
@@ -21,10 +38,8 @@ def load_and_clean_data(file_path, is_train=True, config=None):
         # 防呆機制：移除 target 為空的列
         df = df.dropna(subset=[target])
         
-        # 將性別進行 Label Encoding -> 男: 1, 女: 0 (依據您的定義)
-        # 這裡支援字串或原生的轉換寫法
-        # 原始數據: 1=男, 2=女
-        mapping = {'男': 1, '女': 0, 'Male': 1, 'Female': 0, 1: 1, 2: 0, 0: 0, '1': 1, '0': 0}
+        # 將 target 進行 Label Encoding（映射由 config 控制）
+        mapping = _build_target_mapping(config)
         df[target] = df[target].map(mapping)
         
     return df

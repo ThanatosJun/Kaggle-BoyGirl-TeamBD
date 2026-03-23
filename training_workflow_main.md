@@ -3,7 +3,7 @@
 - **Cleaning**：移除 outliers、無預測能力的欄位
 - **Data Split**：train.csv 切分成 train/validation  **(⚠️ 注意：必須在 Imputation 前執行)**
 - **Imputation**：填補空缺值 **(⚠️ 注意：僅能使用 train 算出來的統計值填補)**
-- **Model Selection**：XGBoost
+- **Model Selection**：依 config 切換 xgboost / lightgbm / random_forest
 - **Feature Transformation**：one-hot encoding、scaling
 - **Feature Selection**：Filter Methods + Embedded Methods
 - **Feature Extraction**(可選擇)：PCA
@@ -14,8 +14,11 @@
 - **Cleaning**: 同 train.csv 的清理步驟，只是不用移除 outliers
 - **Imputation**: 同 train.csv 的填補步驟 **(⚠️ 注意：使用 train.csv 算出的統計值進行填補)**
 - **Feature Transformation**: 同 train.csv 的轉換步驟 **(⚠️ 注意：使用 train.csv 算出的參數如 StandardScaler 進行 transform)**
-- **Model Prediction**: 使用在 train.csv 上訓練好的模型進行預測
+- **Model Prediction**: 支援兩種模式
+  - `full`: 使用 `preprocessor.pkl` + `model.pkl`
+  - `fold`: 使用 `fold_i_preprocessor.pkl` + `fold_i_model.pkl` 進行投票集成
 - **Output Mapping**: 將預測結果轉換回原始格式（0→2 for 女生，1→1 for 男生）
+- **Output File**: 輸出到 `result/`（`submission_full.csv`, `submission_fold.csv` 等）
 
 ## 預測目標： gender (binary classification)
 ## 特徵需要處理的項目：

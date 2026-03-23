@@ -65,11 +65,14 @@ graph TD
 ## 階段 4: 最終訓練與預測
 1. 將剛才設計好的 `Pipeline` 在**包含所有 423 筆的完整 train data** 上進行 `.fit(X, y)`。
 2. 直接將 test data 丟入 `.predict(X_test)` 產出結果。
-3. 建立 submission 檔案。
+3. 預測模式可用 `full`（單模型）或 `fold`（投票集成）。
+4. submission 產出到 `result/` 目錄。
 
 ---
 
 ## 🎯 接下來的實作步驟 (Action Items)
+
+> 註：目前專案實際使用的入口是 `main_train.py` 與 `main_predict.py`，本頁為簡化概念版流程。
 
 要實現這個極簡架構，我們只需要創建或修改以下兩個核心檔案：
 
