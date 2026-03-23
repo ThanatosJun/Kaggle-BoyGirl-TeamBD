@@ -1,0 +1,77 @@
+{
+    "SEED": 42,
+    "DATA_PATH": "data/raw/train.csv",
+    "TEST_DATA_PATH": "data/raw/test.csv",
+    "HEIGHT_THRESHOLD": 200,
+    "WEIGHT_THRESHOLD": 120,
+    "NUMERIC_IMPUTER_STRATEGY": "median",
+    "CATEGORICAL_IMPUTER_STRATEGY": "most_frequent",
+    "SCALING_STRATEGY": "standard",
+    "FEATURE_ENGINEERING": true,
+    "FEATURE_SELECTOR": "rfecv",
+    "SELECTOR_N_ESTIMATORS": 100,
+    "RFE_N_FEATURES": null,
+    "MODEL_TYPE": "random_forest",
+    "VALIDATION_STRATEGY": "cross_validation",
+    "NUM_FOLDS": 10,
+    "TEST_SIZE": 0.2,
+    "USE_STRATIFY": true,
+    "CLASS_WEIGHT": "balanced",
+    "MODEL_PARAMS": {
+        "random_forest": {
+            "n_estimators": 500,
+            "max_depth": 10,
+            "min_samples_split": 5,
+            "class_weight": "balanced",
+            "random_state": 42,
+            "max_features": 0.5
+        },
+        "gradient_boosting": {
+            "learning_rate": 0.03,
+            "n_estimators": 500,
+            "max_depth": 3,
+            "subsample": 0.8,
+            "min_samples_split": 4,
+            "random_state": 42
+        },
+        "xgboost": {
+            "learning_rate": 0.03,
+            "n_estimators": 500,
+            "max_depth": 4,
+            "subsample": 0.8,
+            "colsample_bytree": 0.8,
+            "min_child_weight": 3,
+            "gamma": 0.1,
+            "reg_alpha": 0.1,
+            "reg_lambda": 1.5,
+            "random_state": 42,
+            "eval_metric": "logloss"
+        },
+        "logistic_regression": {
+            "penalty": "l2",
+            "C": 1.0,
+            "class_weight": "balanced",
+            "max_iter": 1000,
+            "random_state": 42
+        },
+        "lightgbm": {
+            "n_estimators": 500,
+            "learning_rate": 0.02,
+            "max_depth": 5,
+            "num_leaves": 31,
+            "subsample": 0.8,
+            "colsample_bytree": 0.8,
+            "class_weight": "balanced",
+            "random_state": 42,
+            "verbose": -1
+        }
+    },
+    "RESULTS_DIR": "yokummy/runs",
+    "MODEL_FILENAME": "random_forest_model.pkl",
+    "STACKING_BASE_ESTIMATORS": [
+        "random_forest",
+        "xgboost",
+        "gradient_boosting"
+    ],
+    "STACKING_META_LEARNER": "logistic_regression"
+}
