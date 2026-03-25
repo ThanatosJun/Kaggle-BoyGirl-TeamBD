@@ -1,8 +1,8 @@
 experiment:
   # 🔧 [可調整] 實驗名稱（會自動加上編號）
-  name: "catboost"
+  name: "exp1_optimal"
   # 🔧 [可調整] 實驗描述（建議詳細記錄改動內容）
-  description: "使用 catboost + class_weight 類別缺失值用 old 方式補值"
+  description: "✅ Experiment 1 最優配置：1%-99% Percentile + 全局 Median 補值 (Baseline) - F1=0.9238, Accuracy=0.8866"
 
 data:
   train_path: "dataset/train.csv"
@@ -63,7 +63,7 @@ preprocessing:
 
 model:
   # 🔧 [可調整] 可切換模型：xgboost | lightgbm | random_forest | catboost
-  type: "catboost"
+  type: "random_forest"
 
   xgb_params:
     objective: "binary:logistic"
@@ -103,7 +103,7 @@ model:
     # 🔧 [重要] 樹的數量 - 越大越穩定但訓練更慢（建議範圍：200-800）
     n_estimators: 400
     # 🔧 [重要] 樹的最大深度 - 控制過擬合（建議範圍：6-15）
-    max_depth: 10
+    max_depth: 12
     # 🔧 [可調整] 分裂節點最小樣本數（建議範圍：2-10）
     min_samples_split: 5
     # 🔧 [可調整] 葉節點最小樣本數（建議範圍：1-5）
@@ -111,7 +111,7 @@ model:
     # 🔧 [可調整] 特徵選擇策略：sqrt | log2 | None
     max_features: "sqrt"
     # 建議由 training.class_weight 統一控制，避免重複加權
-    class_weight: null
+    # class_weight: "balanced"
     n_jobs: -1
     random_state: 42
 
@@ -128,8 +128,10 @@ model:
     border_count: 128
     random_seed: 42
     verbose: False
-    # 🔧 [重要] 類別不平衡處理：auto 會自動計算權重
+    # 🔧 [重要] 類別不平衡處理：auto 會自動計算權重，避免重複計算
     auto_class_weights: "Balanced"
+    # auto_class_weights: null
+
 
   # 網格搜尋空間（依 model.type 讀取）
   param_grid:
@@ -170,7 +172,7 @@ model:
 
 search:
   # 🔧 [可調整] 是否啟用網格搜尋（true=自動調參但較慢，false=使用固定參數快速訓練）
-  enabled: true
+  enabled: false
   # 🔧 [可調整] param_grid_mode: quick | full（quick=少量組合，full=完整搜尋）
   param_grid_mode: full
   # 🔧 [可調整] 評估指標：accuracy | f1 | precision | recall
@@ -183,7 +185,8 @@ training:
   use_smote: false
   # 🔧 [重要] 統一 class_weight（適用 xgboost / lightgbm / random_forest）
   # 可選：null | balanced | {0: 1.5, 1: 1.0}
-  class_weight: balanced
+  # class_weight: balanced
+  class_weight: {0: 1.0, 1: 1.0}
   random_state: 42
   save_dir: "experiments"
   # SMOTE 參數（use_smote=true 時生效）

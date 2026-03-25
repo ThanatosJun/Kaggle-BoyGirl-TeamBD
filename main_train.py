@@ -14,6 +14,7 @@ from src.data_loader import load_and_clean_data, split_X_y
 from src.features import build_preprocessor
 from src.models import get_model
 from src.evaluate import cross_validate_with_smote
+from src.imputation_strategies import get_imputer_from_config
 
 
 def resolve_model_type(config):
@@ -200,7 +201,7 @@ def main():
         for idx, params in enumerate(ParameterGrid(param_grid), start=1):
             print(f"\n[{idx}] 測試參數: {params}")
             candidate_model = get_model(config, override_params=params)
-            cv_metrics_tmp, fold_models_tmp, fold_preprocessors_tmp = cross_validate_with_smote(
+            cv_metrics_tmp, fold_models_tmp, fold_preprocessors_tmp, fold_imputers_tmp = cross_validate_with_smote(
                 X, y, preprocessor, candidate_model, config
             )
 
@@ -216,6 +217,7 @@ def main():
                 best_cv_metrics = cv_metrics_tmp
                 best_fold_models = fold_models_tmp
                 best_fold_preprocessors = fold_preprocessors_tmp
+                best_fold_imputers = fold_imputers_tmp
 
         print(f"\n✅ 搜尋網格完成，最佳參數: {best_params}")
         print(f"✅ 最佳 mean_{search_metric}: {best_score:.6f}")
@@ -225,6 +227,7 @@ def main():
         cv_metrics = best_cv_metrics
         fold_models = best_fold_models
         fold_preprocessors = best_fold_preprocessors
+        fold_imputers = best_fold_imputers
 
         # 保存最佳參數
         best_params_path = os.path.join(exp_path, 'best_params.json')
@@ -238,7 +241,7 @@ def main():
         print(f"💾 已保存最佳參數: {best_params_path}")
     else:
         model = get_model(config)
-        cv_metrics, fold_models, fold_preprocessors = cross_validate_with_smote(X, y, preprocessor, model, config)
+        cv_metrics, fold_models, fold_preprocessors, fold_imputers = cross_validate_with_smote(X, y, preprocessor, model, config)
 
     # 8. 計算平均指標
     metrics_summary = {
@@ -265,7 +268,10 @@ def main():
 
     # 9. 在「所有」訓練資料上，訓練最終正式模型
     print("\n🚀 正在使用「所有訓練集」訓練最終對外預測模型...")
-    X_trans = preprocessor.fit_transform(X)
+    # 與 CV 保持一致：先做自訂補值，再做 preprocessor
+    full_imputer = get_imputer_from_config(config)
+    X_imputed = full_imputer.fit_transform(X, y)
+    X_trans = preprocessor.fit_transform(X_imputed)
 
     if config['training']['use_smote']:
         from imblearn.over_sampling import SMOTE
@@ -303,22 +309,27 @@ def main():
     print(f"💾 已保存 CV + Full Train 結果: {results_path}")
 
     # 11. 儲存模型與特徵處理器
+    imputer_path = os.path.join(exp_path, 'imputer.pkl')
     prep_path = os.path.join(exp_path, 'preprocessor.pkl')
     model_path = os.path.join(exp_path, 'model.pkl')
 
+    joblib.dump(full_imputer, imputer_path)
     joblib.dump(preprocessor, prep_path)
     joblib.dump(model, model_path)
+    print(f"💾 已保存 Imputer: {imputer_path}")
     print(f"💾 已保存 Preprocessor: {prep_path}")
     print(f"💾 已保存 Model: {model_path}")
 
     # 11a. 儲存 Fold 模型與 Fold Preprocessor（用於 Ensemble 預測）
     print(f"\n💾 儲存 Fold 模型與 Fold Preprocessor...")
-    for fold_idx, (fold_model, fold_prep) in enumerate(zip(fold_models, fold_preprocessors)):
+    for fold_idx, (fold_model, fold_prep, fold_imputer) in enumerate(zip(fold_models, fold_preprocessors, fold_imputers)):
         fold_model_path = os.path.join(exp_path, f'fold_{fold_idx}_model.pkl')
         fold_prep_path = os.path.join(exp_path, f'fold_{fold_idx}_preprocessor.pkl')
+        fold_imputer_path = os.path.join(exp_path, f'fold_{fold_idx}_imputer.pkl')
         joblib.dump(fold_model, fold_model_path)
         joblib.dump(fold_prep, fold_prep_path)
-        print(f"   ✓ Fold {fold_idx}: {fold_model_path}, {fold_prep_path}")
+        joblib.dump(fold_imputer, fold_imputer_path)
+        print(f"   ✓ Fold {fold_idx}: {fold_model_path}, {fold_prep_path}, {fold_imputer_path}")
 
     # 12. 更新實驗日誌
     save_experiment_log(base_dir, exp_folder, config, metrics_summary, timestamp)

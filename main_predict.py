@@ -88,13 +88,15 @@ def main():
     # 3. 根據模式載入相應的模型
     if predict_mode == "fold":
         n_splits = config['training']['n_splits']
-        print(f"🧠 載入 {n_splits} 個 Fold 模型與對應 Preprocessor...")
+        print(f"🧠 載入 {n_splits} 個 Fold 模型、Imputer 與對應 Preprocessor...")
         
         # 載入每個 fold 的模型與對應 preprocessor
         fold_models = []
+        fold_imputers = []
         fold_preprocessors = []
         for fold_idx in range(n_splits):
             fold_model_path = os.path.join(exp_path, f'fold_{fold_idx}_model.pkl')
+            fold_imputer_path = os.path.join(exp_path, f'fold_{fold_idx}_imputer.pkl')
             fold_prep_path = os.path.join(exp_path, f'fold_{fold_idx}_preprocessor.pkl')
             
             if not os.path.exists(fold_model_path) or not os.path.exists(fold_prep_path):
@@ -102,14 +104,19 @@ def main():
                 return
             
             fold_models.append(joblib.load(fold_model_path))
+            if os.path.exists(fold_imputer_path):
+                fold_imputers.append(joblib.load(fold_imputer_path))
+            else:
+                fold_imputers.append(None)
             fold_preprocessors.append(joblib.load(fold_prep_path))
-            print(f"   ✓ Fold {fold_idx} 模型與 Preprocessor 已載入")
+            print(f"   ✓ Fold {fold_idx} 模型、Imputer 與 Preprocessor 已載入")
 
         # 進行 Ensemble 預測（投票）
         print("🔮 進行 Ensemble 預測（投票模式）...")
         all_preds = []
-        for fold_idx, (fold_model, fold_prep) in enumerate(zip(fold_models, fold_preprocessors)):
-            X_test_trans = fold_prep.transform(df_test)
+        for fold_idx, (fold_model, fold_imputer, fold_prep) in enumerate(zip(fold_models, fold_imputers, fold_preprocessors)):
+            X_test_input = fold_imputer.transform(df_test) if fold_imputer is not None else df_test
+            X_test_trans = fold_prep.transform(X_test_input)
             preds = fold_model.predict(X_test_trans)
             all_preds.append(preds)
         
@@ -119,6 +126,7 @@ def main():
         
     else:
         # 載入 Full Train 模型
+        imputer_path = os.path.join(exp_path, 'imputer.pkl')
         prep_path = os.path.join(exp_path, 'preprocessor.pkl')
         model_path = os.path.join(exp_path, 'model.pkl')
 
@@ -129,12 +137,14 @@ def main():
             return
 
         print(f"🧠 載入特徵處理器與模型...")
+        imputer = joblib.load(imputer_path) if os.path.exists(imputer_path) else None
         preprocessor = joblib.load(prep_path)
         model = joblib.load(model_path)
 
         # 4. 執行特徵轉換
         print("✨ 進行特徵轉換...")
-        X_test_trans = preprocessor.transform(df_test)
+        X_test_input = imputer.transform(df_test) if imputer is not None else df_test
+        X_test_trans = preprocessor.transform(X_test_input)
 
         # 5. 進行預測
         print("🔮 進行預測...")
