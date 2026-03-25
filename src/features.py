@@ -1,9 +1,12 @@
 import numpy as np
+import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler, OneHotEncoder, FunctionTransformer
 from sklearn.compose import ColumnTransformer
+
+from .imputation_strategies import get_imputer_from_config
 
 class ClippingTransformer(BaseEstimator, TransformerMixin):
     """自訂 Transformer：針對數值型特徵進行極端值剪裁 (Clipping)"""

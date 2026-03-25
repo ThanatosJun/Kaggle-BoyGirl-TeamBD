@@ -4,6 +4,7 @@ import joblib
 import json
 import pandas as pd
 import numpy as np
+import argparse
 from datetime import datetime
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.model_selection import ParameterGrid
@@ -135,9 +136,15 @@ def save_experiment_log(base_dir, exp_folder, config, metrics, timestamp):
         print(f"📝 更新實驗日誌: {log_file}")
 
 def main():
+    # 0. 解析命令行參數
+    parser = argparse.ArgumentParser(description="訓練模型並進行實驗")
+    parser.add_argument('--config', type=str, default='configs/default_config.yaml',
+                        help='配置檔路徑（預設: configs/default_config.yaml）')
+    args = parser.parse_args()
+
     # 1. 讀取設定檔
-    print("🔖 讀取實驗設定檔: configs/default_config.yaml")
-    with open("configs/default_config.yaml", "r", encoding="utf-8") as f:
+    print(f"🔖 讀取實驗設定檔: {args.config}")
+    with open(args.config, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
     # 2. 創建實驗目錄

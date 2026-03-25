@@ -58,18 +58,18 @@ experiment:
 ```yaml
 # 實驗 1: Baseline
 experiment:
-  name: "baseline"
-  description: "初始實驗，使用 XGBoost 預設參數，啟用 class_weight"
+  name: "imputation_outlier"
+  description: "測試不同的缺失值補值方式和 outlier 剪裁範圍（1%-99% vs 5%-95%）"
 
-# 實驗 2: 測試 SMOTE
+# 實驗 2: 特徵結合
 experiment:
-  name: "with_smote"
-  description: "測試 SMOTE 過採樣，關閉 class_weight，比較與 baseline 差異"
+  name: "feature_combination"
+  description: "將 height 和 weight 組合成 BMI 特徵，觀察是否提升模型表現"
 
 # 實驗 3: 調整學習率
 experiment:
-  name: "tuned_lr"
-  description: "降低 learning_rate 至 0.03，增加 iterations 至 800，觀察是否過擬合"
+  name: "text_feature"
+  description: "加入 self_intro 文本特徵，使用 TF-IDF 向量化與 s-bert，觀察對模型的影響"
 ```
 
 ---
