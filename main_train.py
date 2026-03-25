@@ -11,7 +11,7 @@ from sklearn.model_selection import ParameterGrid
 from sklearn.utils.class_weight import compute_sample_weight
 
 from src.data_loader import load_and_clean_data, split_X_y
-from src.features import build_preprocessor
+from src.features import build_preprocessor, engineer_features
 from src.models import get_model
 from src.evaluate import cross_validate_with_smote
 from src.imputation_strategies import get_imputer_from_config
@@ -271,6 +271,8 @@ def main():
     # 與 CV 保持一致：先做自訂補值，再做 preprocessor
     full_imputer = get_imputer_from_config(config)
     X_imputed = full_imputer.fit_transform(X, y)
+    # 衍生特徵工程（與 CV fold 保持一致）
+    X_imputed = engineer_features(X_imputed, config)
     X_trans = preprocessor.fit_transform(X_imputed)
 
     if config['training']['use_smote']:
