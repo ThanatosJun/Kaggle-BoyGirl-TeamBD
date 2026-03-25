@@ -11,3 +11,13 @@ timestamp,experiment,mode,male_count,female_count,total_count,output_file
 2026-03-21 22:10:53,exp_002_LightGBM,fold,295,131,426,result/submission_exp_002_LightGBM_fold.csv
 2026-03-21 22:10:58,exp_006_RandomForest,full,290,136,426,result/submission_exp_006_RandomForest_full.csv
 2026-03-21 22:11:01,exp_006_RandomForest,fold,292,134,426,result/submission_exp_006_RandomForest_fold.csv
+2026-03-23 23:49:43,exp_007_RandomForest_missing_type,full,297,129,426,result/submission_exp_007_RandomForest_missing_type_full.csv
+2026-03-23 23:49:49,exp_007_RandomForest_missing_type,fold,299,127,426,result/submission_exp_007_RandomForest_missing_type_fold.csv
+2026-03-23 23:50:21,exp_008_baseline_missing_type,fold,293,133,426,result/submission_exp_008_baseline_missing_type_fold.csv
+2026-03-23 23:50:26,exp_008_baseline_missing_type,full,285,141,426,result/submission_exp_008_baseline_missing_type_full.csv
+2026-03-23 23:50:37,exp_009_lightgbmg_type,full,288,138,426,result/submission_exp_009_lightgbmg_type_full.csv
+2026-03-23 23:50:42,exp_009_lightgbmg_type,fold,284,142,426,result/submission_exp_009_lightgbmg_type_fold.csv
+2026-03-24 00:07:45,exp_010_catboost,full,296,130,426,result/submission_exp_010_catboost_full.csv
+2026-03-24 00:07:59,exp_010_catboost,fold,297,129,426,result/submission_exp_010_catboost_fold.csv
+2026-03-24 00:08:12,exp_011_catboost,full,301,125,426,result/submission_exp_011_catboost_full.csv
+2026-03-24 00:08:21,exp_011_catboost,fold,299,127,426,result/submission_exp_011_catboost_fold.csv

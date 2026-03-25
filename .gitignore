@@ -37,6 +37,9 @@ models_saved/
 *.h5
 *.pth
 
+# CatBoost training logs
+catboost_info/
+
 # Experiments directory (keep log only)
 experiments/exp_*/
 !experiments/experiment_log.csv

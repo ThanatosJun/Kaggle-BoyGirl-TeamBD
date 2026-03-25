@@ -23,12 +23,14 @@ def resolve_model_type(config):
         'lightgbm': 'lightgbm',
         'lgbm': 'lightgbm',
         'random_forest': 'random_forest',
-        'rf': 'random_forest'
+        'rf': 'random_forest',
+        'catboost': 'catboost',
+        'cat': 'catboost'
     }
     model_type = alias_map.get(raw_model_type)
     if model_type is None:
         raise ValueError(
-            f"不支援的模型類型: {raw_model_type}，請使用 'xgboost'、'lightgbm' 或 'random_forest'"
+            f"不支援的模型類型: {raw_model_type}，請使用 'xgboost'、'lightgbm'、'random_forest' 或 'catboost'"
         )
     return model_type
 
@@ -85,6 +87,15 @@ def get_next_experiment_id(base_dir):
 def save_experiment_log(base_dir, exp_folder, config, metrics, timestamp):
     """將實驗結果記錄到 CSV"""
     log_file = os.path.join(base_dir, 'experiment_log.csv')
+    model_type = resolve_model_type(config)
+    model_cfg = config.get('model', {})
+    params_map = {
+        'xgboost': model_cfg.get('xgb_params', {}),
+        'lightgbm': model_cfg.get('lgbm_params', {}),
+        'random_forest': model_cfg.get('random_forest_params', {}),
+        'catboost': model_cfg.get('catboost_params', {}),
+    }
+    active_params = params_map.get(model_type, {})
 
     # 準備記錄
     record = {
@@ -92,9 +103,10 @@ def save_experiment_log(base_dir, exp_folder, config, metrics, timestamp):
         'timestamp': timestamp,
         'name': config['experiment']['name'],
         'description': config['experiment']['description'],
+        'model_type': model_type,
         'use_smote': config['training']['use_smote'],
-        'learning_rate': config['model']['xgb_params']['learning_rate'],
-        'max_depth': config['model']['xgb_params']['max_depth'],
+        'learning_rate': active_params.get('learning_rate'),
+        'max_depth': active_params.get('max_depth', active_params.get('depth')),
         'mean_accuracy': metrics['mean_accuracy'],
         'std_accuracy': metrics['std_accuracy'],
         'mean_f1': metrics['mean_f1'],

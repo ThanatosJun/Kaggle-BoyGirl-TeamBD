@@ -10,13 +10,15 @@ def _resolve_model_type(config):
         'lightgbm': 'lightgbm',
         'lgbm': 'lightgbm',
         'random_forest': 'random_forest',
-        'rf': 'random_forest'
+        'rf': 'random_forest',
+        'catboost': 'catboost',
+        'cat': 'catboost'
     }
     model_type = alias_map.get(raw_model_type)
 
     if model_type is None:
         raise ValueError(
-            f"不支援的模型類型: {raw_model_type}，請使用 'xgboost'、'lightgbm' 或 'random_forest'"
+            f"不支援的模型類型: {raw_model_type}，請使用 'xgboost'、'lightgbm'、'random_forest' 或 'catboost'"
         )
     return model_type
 
@@ -24,8 +26,8 @@ def _resolve_model_type(config):
 def get_model(config, override_params=None):
     """
     根據 config 實例化模型。
-    支援：xgboost / lightgbm / random_forest
-    （向下相容：xgb / lgbm / rf）
+    支援：xgboost / lightgbm / random_forest / catboost
+    （向下相容：xgb / lgbm / rf / cat）
     """
     model_cfg = config.get('model', {})
     model_type = _resolve_model_type(config)
@@ -61,3 +63,16 @@ def get_model(config, override_params=None):
         if override_params:
             params.update(override_params)
         return RandomForestClassifier(**params)
+
+    if model_type == 'catboost':
+        try:
+            from catboost import CatBoostClassifier
+        except ImportError as exc:
+            raise ImportError(
+                "model.type 設為 'catboost'，但環境未安裝 catboost。"
+                "請先執行: pip install catboost"
+            ) from exc
+        params = dict(model_cfg['catboost_params'])
+        if override_params:
+            params.update(override_params)
+        return CatBoostClassifier(**params)

@@ -52,14 +52,32 @@ def build_preprocessor(config):
     1. 數值特徵 (一般): 中位數補值 -> 剪裁 (1%-99%) -> StandardScaler
     2. 數值特徵 (長尾): 中位數補值 -> 移除負值 (clip to 0) -> log(1+x) -> StandardScaler
        ⚠️ 重要: 數據中 fb_friends 存在 -1000 等負值，必須在 log1p 前處理，否則會產生 NaN
-    3. 無序類別特徵: 眾數補值 -> One-Hot Encoding
-    4. 有序類別特徵: 眾數補值 -> 維持原數值大小 (不做 One-Hot)
+    3. 無序類別特徵: 可切換新版/舊版補值 -> One-Hot Encoding
+    4. 有序類別特徵: 可切換新版/舊版補值 -> 維持原數值大小 (不做 One-Hot)
     """
 
     prep_cfg = config.get('preprocessing', {})
+    imputation_mode = str(prep_cfg.get('imputation_mode', 'new')).lower()
+
+    if imputation_mode in {'new', 'v2'}:
+        default_cat_strategy = 'constant'
+        default_cat_fill = '-1'
+        default_ord_strategy = 'constant'
+        default_ord_fill = -1
+    elif imputation_mode in {'old', 'legacy', 'v1'}:
+        default_cat_strategy = 'most_frequent'
+        default_cat_fill = None
+        default_ord_strategy = 'most_frequent'
+        default_ord_fill = None
+    else:
+        raise ValueError("preprocessing.imputation_mode 僅支援: new | old")
+
     numeric_imputer_strategy = prep_cfg.get('numeric_imputer_strategy', 'median')
-    categorical_imputer_strategy = prep_cfg.get('categorical_imputer_strategy', 'most_frequent')
-    ordinal_imputer_strategy = prep_cfg.get('ordinal_imputer_strategy', 'most_frequent')
+    # 允許手動覆寫策略；未設定時由 imputation_mode 決定
+    categorical_imputer_strategy = prep_cfg.get('categorical_imputer_strategy', default_cat_strategy)
+    categorical_fill_value = prep_cfg.get('categorical_fill_value', default_cat_fill)
+    ordinal_imputer_strategy = prep_cfg.get('ordinal_imputer_strategy', default_ord_strategy)
+    ordinal_fill_value = prep_cfg.get('ordinal_fill_value', default_ord_fill)
     clipping_lower = prep_cfg.get('clipping_lower_percentile', 1)
     clipping_upper = prep_cfg.get('clipping_upper_percentile', 99)
     log_clip_min = prep_cfg.get('log_clip_min', 0)
@@ -87,14 +105,22 @@ def build_preprocessor(config):
     ])
 
     # 3. 無序類別特徵 Pipeline (OneHot Encoding)
+    cat_imputer_kwargs = {'strategy': categorical_imputer_strategy}
+    if categorical_imputer_strategy == 'constant':
+        cat_imputer_kwargs['fill_value'] = categorical_fill_value
+
     cat_pipeline = Pipeline(steps=[
-        ('imputer', SimpleImputer(strategy=categorical_imputer_strategy)),
+        ('imputer', SimpleImputer(**cat_imputer_kwargs)),
         ('onehot', OneHotEncoder(handle_unknown=onehot_handle_unknown, sparse_output=onehot_sparse_output))
     ])
 
     # 4. 有序類別特徵 Pipeline (只做補值，因在 data_loader 已轉成 Float)
+    ord_imputer_kwargs = {'strategy': ordinal_imputer_strategy}
+    if ordinal_imputer_strategy == 'constant':
+        ord_imputer_kwargs['fill_value'] = ordinal_fill_value
+
     ord_pipeline = Pipeline(steps=[
-        ('imputer', SimpleImputer(strategy=ordinal_imputer_strategy))
+        ('imputer', SimpleImputer(**ord_imputer_kwargs))
     ])
 
     # 組合所有 Pipeline 到 ColumnTransformer

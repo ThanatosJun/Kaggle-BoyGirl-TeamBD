@@ -1,6 +1,8 @@
 experiment:
-  name: "RandomForest"  # 實驗名稱（會自動加上編號）
-  description: "使用 Random Forest 實驗，使用 class_weight 平衡"
+  # 🔧 [可調整] 實驗名稱（會自動加上編號）
+  name: "catboost"
+  # 🔧 [可調整] 實驗描述（建議詳細記錄改動內容）
+  description: "使用 catboost + class_weight 類別缺失值用 old 方式補值"
 
 data:
   train_path: "dataset/train.csv"
@@ -31,58 +33,103 @@ features:
   ordinal_cols: ["sleepiness"]
 
 preprocessing:
+  # 缺失值補值模式：new(新版) | old(舊版)
+  # new: 類別/有序缺失用 constant(-1) 保留缺失訊息
+  # old: 類別/有序缺失用 most_frequent（舊版行為）
+  imputation_mode: "old"
+
   # 缺失值策略
   numeric_imputer_strategy: "median"
-  categorical_imputer_strategy: "most_frequent"
-  ordinal_imputer_strategy: "most_frequent"
-  # 數值剪裁百分位數（避免極端值）
+
+  # (可選) 手動覆寫模式預設值；未設定時由 imputation_mode 自動決定
+  # categorical_imputer_strategy: "constant"
+  # categorical_fill_value: "-1"
+  # ordinal_imputer_strategy: "constant"
+  # ordinal_fill_value: -1
+
+  # 🔧 [可調整] 數值剪裁百分位數（避免極端值）- 建議範圍：1-5 和 95-99
   clipping_lower_percentile: 1
   clipping_upper_percentile: 99
+
   # log 特徵在 log1p 前下界（避免負值）
   log_clip_min: 0
-  # scaler: standard | minmax | robust | none
+
+  # 🔧 [可調整] scaler: standard | minmax | robust | none
   scaler: "standard"
+
   # OneHotEncoder 設定
   onehot_handle_unknown: "ignore"
   onehot_sparse_output: false
 
 model:
-  # 可切換模型：xgboost | lightgbm | random_forest
-  type: "random_forest"
+  # 🔧 [可調整] 可切換模型：xgboost | lightgbm | random_forest | catboost
+  type: "catboost"
 
   xgb_params:
     objective: "binary:logistic"
     eval_metric: "logloss"
+    # 🔧 [重要] 學習率 - 越小越穩定但訓練更慢（建議範圍：0.01-0.3）
     learning_rate: 0.1
+    # 🔧 [重要] 樹的最大深度 - 控制過擬合（建議範圍：3-10）
     max_depth: 6
     random_state: 42
     enable_categorical: false
 
   lgbm_params:
     objective: "binary"
+    # 🔧 [重要] 學習率（建議範圍：0.01-0.1）
     learning_rate: 0.03
+    # 🔧 [重要] 樹的數量（建議範圍：100-1000）
     n_estimators: 500
+    # 🔧 [重要] 葉子節點數量 - LightGBM 特有（建議範圍：15-63）
     num_leaves: 15
+    # 🔧 [可調整] 最大深度（建議範圍：3-8）
     max_depth: 5
+    # 🔧 [可調整] 葉節點最小樣本數（建議範圍：10-50）
     min_child_samples: 30
+    # 🔧 [可調整] 特徵採樣比例（建議範圍：0.5-1.0）
     feature_fraction: 0.8
+    # 🔧 [可調整] 樣本採樣比例（建議範圍：0.5-1.0）
     bagging_fraction: 0.8
     bagging_freq: 1
+    # 🔧 [可調整] L2 正則化（建議範圍：0-5）
     reg_lambda: 2.0
+    # 🔧 [可調整] L1 正則化（建議範圍：0-5）
     reg_alpha: 0.5
     verbosity: -1
     random_state: 42
 
   random_forest_params:
+    # 🔧 [重要] 樹的數量 - 越大越穩定但訓練更慢（建議範圍：200-800）
     n_estimators: 400
+    # 🔧 [重要] 樹的最大深度 - 控制過擬合（建議範圍：6-15）
     max_depth: 10
+    # 🔧 [可調整] 分裂節點最小樣本數（建議範圍：2-10）
     min_samples_split: 5
+    # 🔧 [可調整] 葉節點最小樣本數（建議範圍：1-5）
     min_samples_leaf: 3
+    # 🔧 [可調整] 特徵選擇策略：sqrt | log2 | None
     max_features: "sqrt"
     # 建議由 training.class_weight 統一控制，避免重複加權
     class_weight: null
     n_jobs: -1
     random_state: 42
+
+  catboost_params:
+    # 🔧 [重要] 訓練輪數 - 越大越穩定但訓練更慢（建議範圍：100-1000）
+    iterations: 500
+    # 🔧 [重要] 學習率（建議範圍：0.01-0.3）
+    learning_rate: 0.05
+    # 🔧 [重要] 樹的最大深度 - 控制過擬合（建議範圍：4-10）
+    depth: 6
+    # 🔧 [可調整] L2 正則化參數（建議範圍：1-10）
+    l2_leaf_reg: 3
+    # 🔧 [可調整] 邊界採樣比例（建議範圍：0.5-1.0）
+    border_count: 128
+    random_seed: 42
+    verbose: False
+    # 🔧 [重要] 類別不平衡處理：auto 會自動計算權重
+    auto_class_weights: "Balanced"
 
   # 網格搜尋空間（依 model.type 讀取）
   param_grid:
@@ -98,6 +145,10 @@ model:
       max_depth: [8, 10, 12]
       min_samples_leaf: [2, 3, 5]
       min_samples_split: [5, 10]
+    catboost:
+      learning_rate: [0.03, 0.05, 0.1]
+      depth: [4, 6, 8]
+      l2_leaf_reg: [1, 3, 5]
 
   # 小型網格（快速實驗）
   param_grid_quick:
@@ -113,18 +164,24 @@ model:
       max_depth: [8, 10]
       min_samples_leaf: [2, 3]
       min_samples_split: [5, 10]
+    catboost:
+      learning_rate: [0.03, 0.05]
+      depth: [4, 6]
 
 search:
-  enabled: false
-  # param_grid_mode: quick | full
-  param_grid_mode: quick
-  metric: "f1"  # accuracy | f1 | precision | recall
+  # 🔧 [可調整] 是否啟用網格搜尋（true=自動調參但較慢，false=使用固定參數快速訓練）
+  enabled: true
+  # 🔧 [可調整] param_grid_mode: quick | full（quick=少量組合，full=完整搜尋）
+  param_grid_mode: full
+  # 🔧 [可調整] 評估指標：accuracy | f1 | precision | recall
+  metric: "f1"
 
 training:
+  # 🔧 [可調整] 交叉驗證折數（建議範圍：3-10）
   n_splits: 5
-  # 資料平衡方法（可與 class_weight 二擇一或並用）
+  # 🔧 [重要] 資料平衡方法：是否使用 SMOTE 過採樣（建議優先使用 class_weight）
   use_smote: false
-  # 統一 class_weight（適用 xgboost / lightgbm / random_forest）
+  # 🔧 [重要] 統一 class_weight（適用 xgboost / lightgbm / random_forest）
   # 可選：null | balanced | {0: 1.5, 1: 1.0}
   class_weight: balanced
   random_state: 42

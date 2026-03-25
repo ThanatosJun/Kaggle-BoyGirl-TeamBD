@@ -52,13 +52,18 @@
 ### 3. 無序類別特徵處理：
 - **start_sign**: 雙魚座、牡羊座、金牛座、雙子座、巨蟹座、獅子座、處女座、天秤座、天蠍座、射手座、摩羯座、水瓶座、None
 - **phone_os**: Android、iOS、Others
-> **Imputation**： start_sign, phone_os 使用 **眾數** 填補
+> **Imputation**： start_sign, phone_os 使用 **"-1"** (字串) 填補（保留缺失資訊作為獨立類別）
+> - ⚠️ 必須是字串 "-1"，不能是數字 -1，因為原始資料是字串型
+> - 原方法（已停用）：~~使用眾數填補~~
+> - One-Hot 編碼後會產生 `star_sign_-1`, `phone_os_-1` 等特徵，讓模型學習缺失模式
 
 > **Encoding**：進行 **One-Hot Encoding**
 
 ### 4. 有序類別特徵處理：
 - **sleepiness**: 1,2,3,4,5,None
-> **Imputation**：sleepiness 使用 **眾數** 填補。
+> **Imputation**：sleepiness 使用 **-1** 填補（保留缺失資訊，原始值 1-5，-1 可明確區分）
+> - 原方法（已停用）：~~使用眾數填補~~
+> - 缺失值與性別關聯強（缺失時男性比例 80.2% vs 總體 74.7%），保留此資訊有助於預測
 
 > **Encoding**：**不做 One-Hot**，直接轉換為數值型特徵 (`float` / `int`)，維持其大小關係。
 

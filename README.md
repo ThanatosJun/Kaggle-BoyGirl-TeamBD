@@ -95,7 +95,7 @@ python main_predict.py 2 fold
 3. **Data Split** - 5-Fold CV（在 evaluate.py 中執行）
 4. **Imputation** - 填補空值
    - 數值型：中位數（height, weight, iq, fb_friends）
-   - 類別型：眾數（star_sign, phone_os, sleepiness）
+   - 類別型：**-1 常數填充**（star_sign, phone_os, sleepiness）- 保留缺失資訊作為獨立類別
 5. **Feature Transformation**
    - height, weight, iq：Clipping (1%-99%) + StandardScaler
    - **fb_friends：移除負值 + log(1+x) + StandardScaler** ⚠️
@@ -170,13 +170,16 @@ training:
 
 **無序類別（star_sign, phone_os）**
 ```
-眾數補值 → One-Hot Encoding
+"-1" 字串補值 → One-Hot Encoding
 ```
+> 使用 "-1" (字串) 表示缺失，One-Hot 後會產生 `star_sign_-1`, `phone_os_-1` 等特徵
+> ⚠️ 必須是字串，因為原始資料是字串型（雙魚座、Android 等）
 
 **有序類別（sleepiness: 1-5）**
 ```
-眾數補值 → 保持數值型（維持順序關係）
+-1 常數補值 → 保持數值型（維持順序關係）
 ```
+> 使用 -1 表示缺失（原始值 1-5，-1 可明確區分），保留缺失資訊供模型學習
 
 #### Target 處理
 
