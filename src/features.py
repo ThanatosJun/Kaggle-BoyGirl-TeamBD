@@ -16,6 +16,7 @@ def engineer_features(X: pd.DataFrame, config: dict) -> pd.DataFrame:
     Config keys (under features):
       add_weight_height_ratio: bool  → adds 'weight_height_ratio' = weight / height
       add_bmi: bool                  → adds 'bmi' = weight / (height/100)^2
+      add_ponderal_index: bool       → adds 'ponderal_index' = weight / (height/100)^3
     """
     feat_cfg = config.get('features', {})
     X = X.copy()
@@ -27,6 +28,10 @@ def engineer_features(X: pd.DataFrame, config: dict) -> pd.DataFrame:
     if feat_cfg.get('add_bmi', False):
         height_m = (X['height'] / 100.0).replace(0, np.nan).fillna(1e-6)
         X['bmi'] = X['weight'] / (height_m ** 2)
+
+    if feat_cfg.get('add_ponderal_index', False):
+        height_m = (X['height'] / 100.0).replace(0, np.nan).fillna(1e-6)
+        X['ponderal_index'] = X['weight'] / (height_m ** 3)
 
     return X
 
