@@ -68,11 +68,22 @@ class ClippingTransformer(BaseEstimator, TransformerMixin):
             X_clipped[:, i] = np.clip(X_clipped[:, i], self.lower_bounds_[i], self.upper_bounds_[i])
         return X_clipped
 
+    def get_feature_names_out(self, input_features=None):
+        """Keep one-to-one feature names after clipping."""
+        if input_features is None:
+            return np.array([], dtype=object)
+        return np.asarray(input_features, dtype=object)
+
 class TextEmbeddingTransformer(BaseEstimator, TransformerMixin):
     """自訂 Transformer：將文本特徵轉換為數值向量（支援 MiniLM、TF-IDF、或兩者併用）"""
+    _MINILM_CACHE = {}
+
     def __init__(self, Mini_LM=True, TF_IDF=False, use_both=False,
                  embedding_dim=384, tfidf_max_features=50,
-                 use_pca=False, pca_n_components=30):
+                 use_pca=False, pca_n_components=30,
+                 model_name='sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
+                 cache_dir=None,
+                 model_revision=None):
         self.Mini_LM = Mini_LM
         self.TF_IDF = TF_IDF
         self.use_both = use_both
@@ -80,6 +91,9 @@ class TextEmbeddingTransformer(BaseEstimator, TransformerMixin):
         self.tfidf_max_features = tfidf_max_features
         self.use_pca = use_pca
         self.pca_n_components = pca_n_components
+        self.model_name = model_name
+        self.cache_dir = cache_dir
+        self.model_revision = model_revision
         self.tokenizer_ = None
         self.model_ = None
         self.tfidf_vectorizer_ = None
@@ -92,12 +106,15 @@ class TextEmbeddingTransformer(BaseEstimator, TransformerMixin):
         state = self.__dict__.copy()
         state['tokenizer_'] = None
         state['model_'] = None
+        state['torch_'] = None
         return state
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        if self.Mini_LM or self.use_both:
-            self._fit_minilm()
+        # 延遲到真正需要編碼時再載入模型，避免反序列化階段大量 IO。
+        self.tokenizer_ = None
+        self.model_ = None
+        self.torch_ = None
 
     # ── Deepcopy 優化：跨 fold 共享同一份模型引用（推論模式安全）──
     def __deepcopy__(self, memo):
@@ -105,7 +122,7 @@ class TextEmbeddingTransformer(BaseEstimator, TransformerMixin):
         new = cls.__new__(cls)
         memo[id(self)] = new
         for k, v in self.__dict__.items():
-            if k in ('tokenizer_', 'model_'):
+            if k in ('tokenizer_', 'model_', 'torch_'):
                 setattr(new, k, v)  # 共享引用，不複製
             else:
                 setattr(new, k, copy.deepcopy(v, memo))
@@ -133,14 +150,35 @@ class TextEmbeddingTransformer(BaseEstimator, TransformerMixin):
 
     def _fit_minilm(self):
         """加載 MiniLM 模型（僅首次）"""
+        if self.model_ is not None and self.tokenizer_ is not None and self.torch_ is not None:
+            return
+
+        cache_key = (
+            self.model_name,
+            self.cache_dir,
+            self.model_revision,
+        )
+        cached = self._MINILM_CACHE.get(cache_key)
+        if cached is not None:
+            self.tokenizer_, self.model_, self.torch_ = cached
+            return
+
         if self.model_ is None:
             AutoTokenizer, AutoModel, torch_mod = _load_transformer_backends()
             self.torch_ = torch_mod
             self.tokenizer_ = AutoTokenizer.from_pretrained(
-                'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
+                self.model_name,
+                cache_dir=self.cache_dir,
+                revision=self.model_revision,
+            )
             self.model_ = AutoModel.from_pretrained(
-                'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
+                self.model_name,
+                cache_dir=self.cache_dir,
+                revision=self.model_revision,
+            )
+
             self.model_.eval()
+            self._MINILM_CACHE[cache_key] = (self.tokenizer_, self.model_, self.torch_)
 
     def _encode_minilm(self, texts):
         """使用 MiniLM 將文本轉為嵌入向量"""
@@ -382,8 +420,17 @@ def build_preprocessor(config):
     # Pipeline: 中位數補值 → clip 負值到 0 → log(1+x) → StandardScaler
     log_pipeline = Pipeline(steps=[
         ('imputer', SimpleImputer(strategy=numeric_imputer_strategy)),
-        ('clip_min', FunctionTransformer(clip_min_value, kw_args={'min_value': log_clip_min}, validate=False)),
-        ('log1p', FunctionTransformer(np.log1p, validate=False)),
+        ('clip_min', FunctionTransformer(
+            clip_min_value,
+            kw_args={'min_value': log_clip_min},
+            validate=False,
+            feature_names_out='one-to-one'
+        )),
+        ('log1p', FunctionTransformer(
+            np.log1p,
+            validate=False,
+            feature_names_out='one-to-one'
+        )),
         ('scaler', get_scaler_from_config(scaler_name))
     ])
 
@@ -421,6 +468,10 @@ def build_preprocessor(config):
     if text_cols:
         text_method = str(feat_cfg.get('text_embedding_method', 'minilm')).lower()
         tfidf_max_features = feat_cfg.get('tfidf_max_features', 50)
+        text_model_name = feat_cfg.get('text_model_name', 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
+        text_model_cache_dir = feat_cfg.get('text_model_cache_dir', None)
+        text_model_revision = feat_cfg.get('text_model_revision', None)
+        model_source = text_model_name
 
         use_pca = bool(feat_cfg.get('use_pca', False))
         pca_n_components = int(feat_cfg.get('pca_n_components', 30))
@@ -431,7 +482,10 @@ def build_preprocessor(config):
                 embedder = TextEmbeddingTransformer(
                     Mini_LM=False, TF_IDF=False, use_both=True,
                     tfidf_max_features=tfidf_max_features,
-                    use_pca=use_pca, pca_n_components=pca_n_components)
+                    use_pca=use_pca, pca_n_components=pca_n_components,
+                    model_name=model_source,
+                    cache_dir=text_model_cache_dir,
+                    model_revision=text_model_revision)
             elif text_method in {'tfidf', 'tf-idf', 'tf_idf'}:
                 embedder = TextEmbeddingTransformer(
                     Mini_LM=False, TF_IDF=True,
@@ -439,7 +493,10 @@ def build_preprocessor(config):
             else:
                 embedder = TextEmbeddingTransformer(
                     Mini_LM=True, TF_IDF=False,
-                    use_pca=use_pca, pca_n_components=pca_n_components)
+                    use_pca=use_pca, pca_n_components=pca_n_components,
+                    model_name=model_source,
+                    cache_dir=text_model_cache_dir,
+                    model_revision=text_model_revision)
 
             text_pipeline = Pipeline(steps=[('text_embedder', embedder)])
             transformers_list.append(('text', text_pipeline, text_cols))

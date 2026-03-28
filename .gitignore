@@ -48,8 +48,8 @@ experiments/exp_*/
 submission*.csv
 
 # Data files (large datasets)
-dataset/*.csv
-!dataset/README.md
+# dataset/*.csv
+# !dataset/README.md
 
 # macOS
 .DS_Store

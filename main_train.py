@@ -71,6 +71,122 @@ def resolve_class_weight_config(config):
 
     return class_weight_cfg
 
+
+def _extract_feature_names(preprocessor):
+    """Safely get transformed feature names from a fitted preprocessor."""
+    if not hasattr(preprocessor, 'get_feature_names_out'):
+        return None
+    try:
+        return [str(x) for x in preprocessor.get_feature_names_out()]
+    except Exception:
+        return None
+
+
+def _default_feature_names(n_features):
+    """Generate deterministic fallback names when feature names are unavailable."""
+    return [f"feature_{i:04d}" for i in range(int(n_features))]
+
+
+def _normalize_importance_series(series: pd.Series) -> pd.Series:
+    """Normalize importances to sum=1 for easier cross-model comparison."""
+    total = float(series.sum())
+    if total <= 0:
+        return pd.Series(np.zeros(len(series), dtype=float), index=series.index)
+    return series / total
+
+
+def _extract_model_importance(model):
+    """Get feature importance array from different estimator APIs."""
+    # CatBoost style
+    if hasattr(model, 'get_feature_importance'):
+        try:
+            values = model.get_feature_importance()
+            return np.asarray(values, dtype=float).ravel()
+        except Exception:
+            pass
+
+    # sklearn / xgboost / lightgbm wrappers
+    if hasattr(model, 'feature_importances_'):
+        try:
+            values = model.feature_importances_
+            return np.asarray(values, dtype=float).ravel()
+        except Exception:
+            pass
+
+    # LightGBM native booster API fallback
+    if hasattr(model, 'booster_') and hasattr(model.booster_, 'feature_importance'):
+        try:
+            values = model.booster_.feature_importance(importance_type='gain')
+            return np.asarray(values, dtype=float).ravel()
+        except Exception:
+            pass
+
+    # XGBoost native booster API fallback (keys like f0, f1, ...)
+    if hasattr(model, 'get_booster'):
+        try:
+            booster = model.get_booster()
+            score = booster.get_score(importance_type='gain')
+            if score:
+                max_idx = max(int(k[1:]) for k in score.keys() if k.startswith('f'))
+                values = np.zeros(max_idx + 1, dtype=float)
+                for key, val in score.items():
+                    if key.startswith('f') and key[1:].isdigit():
+                        values[int(key[1:])] = float(val)
+                return values
+        except Exception:
+            pass
+
+    # Linear models fallback
+    if hasattr(model, 'coef_'):
+        try:
+            coef = np.asarray(model.coef_, dtype=float)
+            if coef.ndim == 1:
+                return np.abs(coef)
+            return np.mean(np.abs(coef), axis=0)
+        except Exception:
+            pass
+
+    return None
+
+
+def summarize_cv_feature_importance(fold_models, fold_preprocessors):
+    """Aggregate fold-wise feature importance and keep only normalized CV mean."""
+    fold_series_norm = []
+
+    for fold_idx, (fold_model, fold_prep) in enumerate(zip(fold_models, fold_preprocessors), start=1):
+        feature_names = _extract_feature_names(fold_prep)
+        importances = _extract_model_importance(fold_model)
+
+        if importances is None:
+            continue
+
+        if feature_names is None:
+            feature_names = _default_feature_names(len(importances))
+
+        aligned_len = min(len(feature_names), len(importances))
+        if aligned_len == 0:
+            continue
+
+        series = pd.Series(importances[:aligned_len], index=feature_names[:aligned_len], dtype=float)
+        series.name = f'fold_{fold_idx}'
+        fold_series_norm.append(_normalize_importance_series(series))
+
+    if not fold_series_norm:
+        return None
+
+    fold_df_norm = pd.concat(fold_series_norm, axis=1).fillna(0.0)
+
+    fold_mean_norm = fold_df_norm.mean(axis=1)
+
+    summary_df = pd.DataFrame({
+        'feature': fold_df_norm.index,
+        'cv_mean_importance_norm': fold_mean_norm.values,
+    }).sort_values('cv_mean_importance_norm', ascending=False)
+
+    return {
+        'cv_summary': summary_df.to_dict(orient='records'),
+    }
+
 def get_next_experiment_id(base_dir):
     """獲取下一個實驗編號"""
     if not os.path.exists(base_dir):
@@ -298,6 +414,11 @@ def main():
     metrics_summary['full_train_precision'] = precision_score(y, full_train_preds, zero_division=0)
     metrics_summary['full_train_recall'] = recall_score(y, full_train_preds, zero_division=0)
     metrics_summary['full_train_metric_scope'] = 'train_set_only_no_validation'
+
+    # 10b. 彙整並保存特徵重要度（CV 每 fold + CV 平均/標準差 + Full Train）
+    cv_feature_importance = summarize_cv_feature_importance(fold_models, fold_preprocessors)
+    if cv_feature_importance is not None:
+        metrics_summary['feature_importance'] = cv_feature_importance
 
     # 10. 保存 CV + Full Train 結果
     results_path = os.path.join(exp_path, 'cv_results.json')

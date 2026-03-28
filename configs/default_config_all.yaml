@@ -22,9 +22,9 @@
 #   修改 features 區塊：
 #   - text_cols: ["self_intro"] 或 []
 #   - text_embedding_method: handcrafted | tfidf | minilm | both | null
-#   - text_pca_n_components: null | 30 | 64
-#   - text_tfidf_max_features: 100 (tfidf 方法時生效)
-#   - text_minilm_pooling: mean (minilm 方法時生效)
+#   - use_pca: true | false
+#   - pca_n_components: 30 | 64 (use_pca=true 時生效)
+#   - tfidf_max_features: 100 (tfidf 方法時生效)
 #
 # =============================================================================
 
@@ -74,13 +74,11 @@ features:
   text_embedding_method: null
 
   # 🔧 [Exp 3 控制] PCA 降維（null=不降維）
-  text_pca_n_components: null  # 選項: null | 30 | 64
+  use_pca: false
+  pca_n_components: 30
 
   # 🔧 [Exp 3 控制] TF-IDF 最大特徵數
-  text_tfidf_max_features: 100
-
-  # 🔧 [Exp 3 控制] MiniLM pooling 策略
-  text_minilm_pooling: "mean"  # 選項: mean | cls
+  tfidf_max_features: 100
 
   # 🔧 [Exp 2 控制] 衍生特徵開關
   add_bmi: false                      # BMI = weight / (height/100)^2
@@ -156,10 +154,10 @@ model:
   # Random Forest 參數（已統一）
   # ───────────────────────────────────────────────────────────────────────────
   random_forest_params:
-    n_estimators: 400
-    max_depth: 12           # ✅ 統一為 12
-    min_samples_split: 5
-    min_samples_leaf: 3
+    n_estimators: 300
+    max_depth: 10           # ✅ 統一為 10
+    min_samples_split: 3
+    min_samples_leaf: 5
     max_features: "sqrt"
     # class_weight 移除，由 training.class_weight 統一控制
     n_jobs: -1
@@ -171,7 +169,7 @@ model:
   catboost_params:
     iterations: 500
     learning_rate: 0.05
-    depth: 6                # ✅ 統一為 6
+    depth: 8                # ✅ 統一為 8
     l2_leaf_reg: 3
     border_count: 128
     random_seed: 42
@@ -281,7 +279,8 @@ prediction:
 #   features.add_bmi: true
 #   features.text_cols: ["self_intro"]
 #   features.text_embedding_method: "minilm"
-#   features.text_pca_n_components: 64
+#   features.use_pca: true
+#   features.pca_n_components: 64
 #   data.drop_cols: ["id", "yt"]  # 保留 self_intro
 #
 # =============================================================================

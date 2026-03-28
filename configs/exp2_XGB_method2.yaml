@@ -30,9 +30,9 @@
 
 experiment:
   # 🔧 [必改] 實驗名稱（會自動加上編號）
-  name: "exp1_RF_method0"
+  name: "exp2_XGB_method2"
   # 🔧 [必改] 實驗描述（建議詳細記錄改動內容）
-  description: "Exp1 RF method0: imputation method0"
+  description: "Exp2 XGB method2: median imputation + BMI feature"
 
 data:
   train_path: "dataset/train.csv"
@@ -81,7 +81,7 @@ features:
   tfidf_max_features: 100
 
   # 🔧 [Exp 2 控制] 衍生特徵開關
-  add_bmi: false                      # BMI = weight / (height/100)^2
+  add_bmi: true                      # BMI = weight / (height/100)^2
   add_weight_height_ratio: false      # 體重身高比
   add_ponderal_index: false           # Ponderal Index = weight / height^3
 
@@ -119,7 +119,7 @@ preprocessing:
 model:
   # 🔧 [可切換] 模型類型
   # 選項: xgboost | lightgbm | random_forest | catboost
-  type: "random_forest"
+  type: "xgboost"
 
   # ───────────────────────────────────────────────────────────────────────────
   # XGBoost 參數
@@ -254,29 +254,29 @@ prediction:
 #
 # 【Exp1 - Method0 Baseline】
 #   preprocessing.imputation_method: "method0"
-#   features.add_bmi: false
+#   features.add_bmi: true                      # BMI = weight / (height/100)^2
 #   features.text_cols: []
 #
 # 【Exp1 - Method2 論文範圍】
 #   preprocessing.imputation_method: "method2"
-#   features.add_bmi: false
+#   features.add_bmi: true                      # BMI = weight / (height/100)^2
 #   features.text_cols: []
 #
 # 【Exp2 - 加入 BMI】
 #   preprocessing.imputation_method: "method0"
-#   features.add_bmi: true
+#   features.add_bmi: true                      # BMI = weight / (height/100)^2
 #   features.text_cols: []
 #
 # 【Exp3 - Handcrafted 手工特徵】
 #   preprocessing.imputation_method: "method0"
-#   features.add_bmi: true
+#   features.add_bmi: true                      # BMI = weight / (height/100)^2
 #   features.text_cols: ["self_intro"]
 #   features.text_embedding_method: "handcrafted"
 #   data.drop_cols: ["id", "yt"]  # 保留 self_intro
 #
 # 【Exp3 - MiniLM + PCA64】
 #   preprocessing.imputation_method: "method0"
-#   features.add_bmi: true
+#   features.add_bmi: true                      # BMI = weight / (height/100)^2
 #   features.text_cols: ["self_intro"]
 #   features.text_embedding_method: "minilm"
 #   features.use_pca: true

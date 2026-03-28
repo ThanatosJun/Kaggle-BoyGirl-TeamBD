@@ -30,9 +30,9 @@
 
 experiment:
   # 🔧 [必改] 實驗名稱（會自動加上編號）
-  name: "exp1_RF_method0"
+  name: "exp1_CB_method2"
   # 🔧 [必改] 實驗描述（建議詳細記錄改動內容）
-  description: "Exp1 RF method0: imputation method0"
+  description: "Exp1 CB method2: imputation method2"
 
 data:
   train_path: "dataset/train.csv"
@@ -95,7 +95,7 @@ preprocessing:
   # - method1: 全局 Mean
   # - method2: 論文範圍中點
   # - method3: 分群平均
-  imputation_method: "method0"
+  imputation_method: "method2"
 
   # 缺失值補值模式
   imputation_mode: "old"
@@ -119,7 +119,7 @@ preprocessing:
 model:
   # 🔧 [可切換] 模型類型
   # 選項: xgboost | lightgbm | random_forest | catboost
-  type: "random_forest"
+  type: "catboost"
 
   # ───────────────────────────────────────────────────────────────────────────
   # XGBoost 參數

@@ -17,7 +17,9 @@
 ```
 Kaggle-BoyGirl-TeamBD/
 ├── configs/
-│   └── default_config.yaml      # 🔧 訓練配置檔案（修改參數從這裡開始）
+│   ├── default_config_all.yaml  # 🔧 統一訓練配置模板（建議從這裡複製）
+│   ├── default_config_exp3.yaml # Exp3 文本實驗模板
+│   └── exp1_*_method*.yaml      # Exp1 批次配置（4 模型 × 4 補值 = 16 份）
 ├── dataset/
 │   ├── train.csv                # 訓練資料
 │   └── test.csv                 # 測試資料
@@ -33,6 +35,7 @@ Kaggle-BoyGirl-TeamBD/
 ├── notebooks/                   # 📓 探索性分析 Notebooks
 ├── main_train.py                # ▶️ 訓練主程式
 ├── main_predict.py              # ▶️ 預測主程式
+├── batch_train_and_record.py    # ▶️ 批次訓練與指標彙整
 └── docs/
     ├── experiment_guide.md      # 📖 實驗參數調整指南
     ├── training_workflow_main.md # 訓練流程說明
@@ -47,17 +50,19 @@ Kaggle-BoyGirl-TeamBD/
 
 ```bash
 # 創建並啟動虛擬環境
-conda create -n boygirl python=3.13 -y
-conda activate boygirl
+conda create -n boygirl311 python=3.11 -y
+conda activate boygirl311
 
 # 安裝依賴套件
 pip install -r requirements.txt
 ```
 
+建議使用 Python 3.11。實務上 Python 3.13 在部分 torch/transformers 組合下可能出現原生相容問題。
+
 ### 2. 執行訓練
 
 ```bash
-python main_train.py
+python main_train.py --config configs/default_config_all.yaml
 ```
 
 訓練完成後會在 `experiments/` 目錄下自動創建實驗資料夾（如 `exp_001_baseline/`），包含：
@@ -81,6 +86,23 @@ python main_predict.py 2 fold   # 使用 fold ensemble 模式
 ```
 
 預測結果會儲存在 `result/` 目錄下。
+
+### 4. 批次訓練（16 組 Exp1）
+
+```bash
+# 批次執行 Exp1 的 16 份配置檔，並把結果寫入 experiments/experiment_record.csv
+python batch_train_and_record.py \
+  --config-glob "configs/exp1_*_method*.yaml" \
+  --output-csv experiments/experiment_record.csv
+
+# 若希望遇到第一個錯誤就停止
+python batch_train_and_record.py \
+  --config-glob "configs/exp1_*_method*.yaml" \
+  --output-csv experiments/experiment_record.csv \
+  --stop-on-error
+```
+
+`experiment_record.csv` 會記錄每次實驗的 Mean Accuracy、Mean F1、Mean Precision、Mean Recall（含標準差）。
 
 > 📖 **詳細說明**:
 > - 完整訓練流程: [training_workflow_main.md](docs/training_workflow_main.md)
@@ -131,7 +153,7 @@ python main_predict.py 2 fold   # 使用 fold ensemble 模式
 
 ## ⚙️ 配置檔案簡介
 
-所有訓練參數都定義在 `configs/default_config.yaml` 中。主要配置區塊：
+主要訓練參數建議定義在 `configs/default_config_all.yaml`。主要配置區塊：
 
 ### 配置結構概覽
 
@@ -195,15 +217,18 @@ prediction:
 每次執行 `python main_train.py` 時，系統會自動：
 
 1. **創建新的實驗資料夾**: `experiments/exp_XXX_name/`
-2. **保存完整配置**: 將當前的 `default_config.yaml` 複製到實驗資料夾
+2. **保存完整配置**: 將當前的 `default_config_all.yaml` 複製到實驗資料夾
 3. **記錄所有模型**: 保存 full train 模型與每個 fold 的模型
 4. **寫入實驗日誌**: 自動更新 `experiments/experiment_log.csv`
+
+另外，`main_train.py` 會把 CV 指標與特徵重要度（可取得時）寫入各實驗資料夾中的 `cv_results.json`。
 
 ### 實驗資料夾結構
 
 ```
 experiments/
 ├── experiment_log.csv          # 所有實驗的總記錄表
+├── experiment_record.csv       # 批次訓練匯總（由 batch_train_and_record.py 產生）
 └── exp_001_baseline/
     ├── config.yaml             # 該次實驗的配置
     ├── cv_results.json         # 交叉驗證詳細結果
@@ -291,7 +316,7 @@ Cross-Validation 會輸出以下指標：
 
 | 文件 | 說明 |
 |------|------|
-| [experiment_guide.md](docs/experiment_guide.md) | 📖 **參數調整與實驗指南**（如何調整 default_config.yaml） |
+| [experiment_guide.md](docs/experiment_guide.md) | 📖 **參數調整與實驗指南**（如何調整 default_config_all.yaml） |
 | [training_workflow_main.md](docs/training_workflow_main.md) | 完整訓練流程說明 |
 | [start_train.md](docs/start_train.md) | 快速開始教學 |
 
