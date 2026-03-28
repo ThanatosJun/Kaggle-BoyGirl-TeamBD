@@ -59,7 +59,7 @@ data:
 # =============================================================================
 features:
   # 基礎數值特徵
-  numeric_cols: ["height", "weight", "iq"]
+  numeric_cols: ["height", "weight", "iq", "bmi"]
   numeric_log_cols: ["fb_friends"]
   categorical_cols: ["star_sign", "phone_os"]
   ordinal_cols: ["sleepiness"]
