@@ -7,6 +7,7 @@ from sklearn.utils.class_weight import compute_sample_weight
 from imblearn.over_sampling import SMOTE
 
 from .imputation_strategies import get_imputer_from_config
+from .features import engineer_features
 
 
 def _resolve_class_weight_config(config):
@@ -69,6 +70,10 @@ def cross_validate_with_smote(X, y, preprocessor, model, config):
         imputer_fold = copy.deepcopy(imputer)
         X_train_fold = imputer_fold.fit_transform(X_train_fold, y_train_fold)
         X_val_fold = imputer_fold.transform(X_val_fold)
+
+        # 2b. 衍生特徵工程（在補值後計算 ratio/BMI）
+        X_train_fold = engineer_features(X_train_fold, config)
+        X_val_fold   = engineer_features(X_val_fold, config)
 
         # 3. 定義該次 Fold 的 Preprocessor，並 Fit_Transform 訓練集
         prep_fold = copy.deepcopy(preprocessor)
