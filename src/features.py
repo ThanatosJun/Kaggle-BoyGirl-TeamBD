@@ -1,4 +1,5 @@
 import copy
+import importlib
 import re
 import numpy as np
 import pandas as pd
@@ -9,9 +10,16 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler, On
 from sklearn.compose import ColumnTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import PCA
-from transformers import AutoTokenizer, AutoModel
-import torch
 from .imputation_strategies import get_imputer_from_config
+
+
+def _load_transformer_backends():
+    """Lazy import heavy text backends to avoid crashing non-text runs at import time."""
+    transformers_mod = importlib.import_module('transformers')
+    torch_mod = importlib.import_module('torch')
+    return transformers_mod.AutoTokenizer, transformers_mod.AutoModel, torch_mod
+
+
 def engineer_features(X: pd.DataFrame, config: dict) -> pd.DataFrame:
     """
     Compute derived features based on config flags.
@@ -77,6 +85,7 @@ class TextEmbeddingTransformer(BaseEstimator, TransformerMixin):
         self.tfidf_vectorizer_ = None
         self.pca_ = None
         self.pca_scaler_ = None
+        self.torch_ = None
 
     # ── Pickle 優化：不序列化 ~460MB 的模型權重 ──
     def __getstate__(self):
@@ -125,6 +134,8 @@ class TextEmbeddingTransformer(BaseEstimator, TransformerMixin):
     def _fit_minilm(self):
         """加載 MiniLM 模型（僅首次）"""
         if self.model_ is None:
+            AutoTokenizer, AutoModel, torch_mod = _load_transformer_backends()
+            self.torch_ = torch_mod
             self.tokenizer_ = AutoTokenizer.from_pretrained(
                 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
             self.model_ = AutoModel.from_pretrained(
@@ -136,7 +147,7 @@ class TextEmbeddingTransformer(BaseEstimator, TransformerMixin):
         encoded_input = self.tokenizer_(
             texts, padding=True, truncation=True,
             return_tensors='pt', max_length=128)
-        with torch.no_grad():
+        with self.torch_.no_grad():
             model_output = self.model_(**encoded_input)
         return self.mean_pooling(
             model_output, encoded_input['attention_mask']).cpu().numpy()
@@ -174,7 +185,7 @@ class TextEmbeddingTransformer(BaseEstimator, TransformerMixin):
         """對所有 token embeddings 進行平均池化"""
         token_embeddings = model_output[0]
         input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-        return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+        return self.torch_.sum(token_embeddings * input_mask_expanded, 1) / self.torch_.clamp(input_mask_expanded.sum(1), min=1e-9)
 
     def transform(self, X, y=None):
         """將文本轉換為嵌入向量（返回 numpy array）"""

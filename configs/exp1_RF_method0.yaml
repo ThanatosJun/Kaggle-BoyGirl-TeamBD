@@ -1,0 +1,287 @@
+# =============================================================================
+# 統一配置模板 - 可通過修改關鍵參數快速切換三個實驗
+# =============================================================================
+#
+# 🎯 實驗控制指南：
+#
+# 【Exp 1 - 補值策略對比】
+#   修改 preprocessing.imputation_method: method0 | method1 | method2 | method3
+#   - method0: 全局 Median (最優, F1=0.9315)
+#   - method1: 全局 Mean
+#   - method2: 論文範圍中點
+#   - method3: 分群平均
+#
+# 【Exp 2 - 特徵工程】
+#   修改 features 區塊：
+#   - 基礎版: add_bmi=false, add_weight_height_ratio=false, add_ponderal_index=false
+#   - +BMI:   add_bmi=true, add_weight_height_ratio=false, add_ponderal_index=false
+#   - +Ratio: add_bmi=false, add_weight_height_ratio=true, add_ponderal_index=false
+#   - +PI:    add_bmi=false, add_weight_height_ratio=false, add_ponderal_index=true
+#
+# 【Exp 3 - 文本嵌入 + PCA】
+#   修改 features 區塊：
+#   - text_cols: ["self_intro"] 或 []
+#   - text_embedding_method: handcrafted | tfidf | minilm | both | null
+#   - text_pca_n_components: null | 30 | 64
+#   - text_tfidf_max_features: 100 (tfidf 方法時生效)
+#   - text_minilm_pooling: mean (minilm 方法時生效)
+#
+# =============================================================================
+
+experiment:
+  # 🔧 [必改] 實驗名稱（會自動加上編號）
+  name: "Exp1_RandomForest_method0"
+  # 🔧 [必改] 實驗描述（建議詳細記錄改動內容）
+  description: "Exp 1-0: 1%-99% Percentile + 全局 Median 補值 (Random Forest)"
+
+data:
+  train_path: "dataset/train.csv"
+  test_path: "dataset/test.csv"
+  # 🔧 [Exp3 控制] 是否保留 self_intro（Exp3 需要，Exp1/2 可移除）
+  drop_cols: ["id", "yt", "self_intro"]
+  target_col: "gender"
+  target_train_mapping:
+    "男": 1
+    "女": 0
+    "Male": 1
+    "Female": 0
+    1: 1
+    2: 0
+    0: 0
+    "1": 1
+    "0": 0
+  target_output_mapping:
+    0: 2
+    1: 1
+
+# =============================================================================
+# 特徵工程區塊 - 控制 Exp2 和 Exp3
+# =============================================================================
+features:
+  # 基礎數值特徵
+  numeric_cols: ["height", "weight", "iq"]
+  numeric_log_cols: ["fb_friends"]
+  categorical_cols: ["star_sign", "phone_os"]
+  ordinal_cols: ["sleepiness"]
+
+  # 🔧 [Exp 3 控制] 文本特徵
+  # - Exp1/2: text_cols 留空 []
+  # - Exp3: text_cols: ["self_intro"]
+  text_cols: []
+
+  # 🔧 [Exp 3 控制] 文本嵌入方法
+  # 選項: null | handcrafted | tfidf | minilm | both
+  text_embedding_method: null
+
+  # 🔧 [Exp 3 控制] PCA 降維（null=不降維）
+  text_pca_n_components: null  # 選項: null | 30 | 64
+
+  # 🔧 [Exp 3 控制] TF-IDF 最大特徵數
+  text_tfidf_max_features: 100
+
+  # 🔧 [Exp 3 控制] MiniLM pooling 策略
+  text_minilm_pooling: "mean"  # 選項: mean | cls
+
+  # 🔧 [Exp 2 控制] 衍生特徵開關
+  add_bmi: false                      # BMI = weight / (height/100)^2
+  add_weight_height_ratio: false      # 體重身高比
+  add_ponderal_index: false           # Ponderal Index = weight / height^3
+
+# =============================================================================
+# 預處理區塊 - 控制 Exp1 補值策略
+# =============================================================================
+preprocessing:
+  # 🔧 [Exp 1 控制] 補值方法
+  # 選項: method0 | method1 | method2 | method3
+  # - method0: 全局 Median (最優, F1=0.9315)
+  # - method1: 全局 Mean
+  # - method2: 論文範圍中點
+  # - method3: 分群平均
+  imputation_method: "method0"
+
+  # 缺失值補值模式
+  imputation_mode: "old"
+  numeric_imputer_strategy: "median"
+
+  # 數值剪裁百分位數
+  clipping_lower_percentile: 1
+  clipping_upper_percentile: 99
+  log_clip_min: 0
+
+  # 標準化方法
+  scaler: "standard"
+
+  # OneHotEncoder 設定
+  onehot_handle_unknown: "ignore"
+  onehot_sparse_output: false
+
+# =============================================================================
+# 模型參數 - 統一四種模型的參數（已統一）
+# =============================================================================
+model:
+  # 🔧 [可切換] 模型類型
+  # 選項: xgboost | lightgbm | random_forest | catboost
+  type: "random_forest"
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # XGBoost 參數
+  # ───────────────────────────────────────────────────────────────────────────
+  xgb_params:
+    objective: "binary:logistic"
+    eval_metric: "logloss"
+    learning_rate: 0.1
+    max_depth: 6
+    random_state: 42
+    enable_categorical: false
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # LightGBM 參數
+  # ───────────────────────────────────────────────────────────────────────────
+  lgbm_params:
+    objective: "binary"
+    learning_rate: 0.03
+    n_estimators: 500
+    num_leaves: 15
+    max_depth: 5
+    min_child_samples: 30
+    feature_fraction: 0.8
+    bagging_fraction: 0.8
+    bagging_freq: 1
+    reg_lambda: 2.0
+    reg_alpha: 0.5
+    verbosity: -1
+    random_state: 42
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Random Forest 參數（已統一）
+  # ───────────────────────────────────────────────────────────────────────────
+  random_forest_params:
+    n_estimators: 400
+    max_depth: 12           # ✅ 統一為 12
+    min_samples_split: 5
+    min_samples_leaf: 3
+    max_features: "sqrt"
+    # class_weight 移除，由 training.class_weight 統一控制
+    n_jobs: -1
+    random_state: 42
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # CatBoost 參數（已統一）
+  # ───────────────────────────────────────────────────────────────────────────
+  catboost_params:
+    iterations: 500
+    learning_rate: 0.05
+    depth: 6                # ✅ 統一為 6
+    l2_leaf_reg: 3
+    border_count: 128
+    random_seed: 42
+    verbose: False
+    # auto_class_weights: "Balanced"
+    auto_class_weights: null
+
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # 網格搜尋空間（完整版）
+  # ───────────────────────────────────────────────────────────────────────────
+  param_grid:
+    xgboost:
+      learning_rate: [0.03, 0.05, 0.1]
+      max_depth: [4, 6, 8]
+    lightgbm:
+      learning_rate: [0.03, 0.05]
+      num_leaves: [15, 31]
+      max_depth: [4, 5, 6]
+    random_forest:
+      n_estimators: [300, 400, 600]
+      max_depth: [8, 10, 12]
+      min_samples_leaf: [2, 3, 5]
+      min_samples_split: [5, 10]
+    catboost:
+      learning_rate: [0.03, 0.05, 0.1]
+      depth: [4, 6, 8]
+      l2_leaf_reg: [1, 3, 5]
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # 網格搜尋空間（快速版）
+  # ───────────────────────────────────────────────────────────────────────────
+  param_grid_quick:
+    xgboost:
+      learning_rate: [0.05, 0.1]
+      max_depth: [4, 6]
+    lightgbm:
+      learning_rate: [0.03, 0.05]
+      num_leaves: [15]
+      max_depth: [4, 5]
+    random_forest:
+      n_estimators: [300, 400]
+      max_depth: [8, 10]
+      min_samples_leaf: [2, 3]
+      min_samples_split: [5, 10]
+    catboost:
+      learning_rate: [0.03, 0.05]
+      depth: [4, 6]
+
+# =============================================================================
+# 搜尋與訓練設定
+# =============================================================================
+search:
+  # 🔧 是否啟用網格搜尋
+  enabled: false
+  # 🔧 網格模式: quick | full
+  param_grid_mode: full
+  # 🔧 評估指標: accuracy | f1 | precision | recall
+  metric: "f1"
+
+training:
+  # 🔧 交叉驗證折數
+  n_splits: 5
+  # 🔧 是否使用 SMOTE 過採樣
+  use_smote: false
+  # 🔧 類別權重（已統一為字符串格式）
+  # 選項: "balanced" | null | {0: 1.0, 1: 1.0}
+  class_weight: "balanced"
+  random_state: 42
+  save_dir: "experiments"
+  smote_params:
+    random_state: 42
+
+prediction:
+  # 預測模式: full | fold
+  default_mode: "full"
+  output_dir: "result"
+
+# =============================================================================
+# 快速實驗配置範例
+# =============================================================================
+#
+# 【Exp1 - Method0 Baseline】
+#   preprocessing.imputation_method: "method0"
+#   features.add_bmi: false
+#   features.text_cols: []
+#
+# 【Exp1 - Method2 論文範圍】
+#   preprocessing.imputation_method: "method2"
+#   features.add_bmi: false
+#   features.text_cols: []
+#
+# 【Exp2 - 加入 BMI】
+#   preprocessing.imputation_method: "method0"
+#   features.add_bmi: true
+#   features.text_cols: []
+#
+# 【Exp3 - Handcrafted 手工特徵】
+#   preprocessing.imputation_method: "method0"
+#   features.add_bmi: true
+#   features.text_cols: ["self_intro"]
+#   features.text_embedding_method: "handcrafted"
+#   data.drop_cols: ["id", "yt"]  # 保留 self_intro
+#
+# 【Exp3 - MiniLM + PCA64】
+#   preprocessing.imputation_method: "method0"
+#   features.add_bmi: true
+#   features.text_cols: ["self_intro"]
+#   features.text_embedding_method: "minilm"
+#   features.text_pca_n_components: 64
+#   data.drop_cols: ["id", "yt"]  # 保留 self_intro
+#
+# =============================================================================
