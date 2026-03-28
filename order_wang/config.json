@@ -1,0 +1,128 @@
+{
+  "project": {
+    "name": "性別預測 Kaggle Competition",
+    "version": "1.0",
+    "author": "Wang Team",
+    "description": "基於個人數據預測性別的二元分類任務"
+  },
+  
+  "data": {
+    "train_path": "~/Documents/projects/Kaggle-BoyGirl-TeamBD/data/raw/train.csv",
+    "test_path": "~/Documents/projects/Kaggle-BoyGirl-TeamBD/data/raw/test.csv",
+    "train_samples": 423,
+    "test_samples": 426,
+    "target_column": "gender",
+    "id_column": "id",
+    "class_distribution": {
+      "male": 316,
+      "female": 107
+    }
+  },
+  
+  "preprocessing": {
+    "missing_strategy": "保留NaN (XGBoost/CatBoost原生支援)",
+    "outlier_handling": {
+      "method": "clip + indicator",
+      "ranges": {
+        "height": [140, 200],
+        "weight": [35, 120],
+        "iq": [70, 150],
+        "fb_friends": [0, 2000],
+        "sleepiness": [1, 5],
+        "yt": [0, 200]
+      }
+    },
+    "text_features": {
+      "model": "paraphrase-multilingual-MiniLM-L12-v2",
+      "embedding_dim": 384,
+      "field": "self_intro"
+    },
+    "categorical_features": ["star_sign", "phone_os"]
+  },
+  
+  "features": {
+    "engineered": [
+      "bmi",
+      "height_weight_ratio",
+      "social_activity",
+      "data_completeness",
+      "total_missing",
+      "total_outliers"
+    ],
+    "outlier_indicators": [
+      "is_height_low",
+      "is_height_high",
+      "is_weight_low",
+      "is_weight_high",
+      "is_iq_low",
+      "is_iq_high",
+      "is_fb_meme",
+      "is_fb_high",
+      "is_sleepiness_abnormal"
+    ],
+    "missing_indicators": [
+      "is_height_missing",
+      "is_weight_missing",
+      "is_iq_missing",
+      "is_sleepiness_missing",
+      "is_fb_missing",
+      "is_yt_missing",
+      "is_star_sign_missing",
+      "is_phone_os_missing",
+      "is_self_intro_missing"
+    ]
+  },
+  
+  "models": {
+    "xgboost": {
+      "n_estimators": 100,
+      "max_depth": 5,
+      "learning_rate": 0.05,
+      "scale_pos_weight": 2.95,
+      "random_state": 42,
+      "eval_metric": "logloss",
+      "tree_method": "hist",
+      "enable_categorical": false
+    },
+    "catboost": {
+      "iterations": 100,
+      "depth": 5,
+      "learning_rate": 0.05,
+      "loss_function": "Logloss",
+      "eval_metric": "Accuracy",
+      "auto_class_weights": "Balanced",
+      "random_seed": 42,
+      "verbose": 0,
+      "use_best_model": true
+    }
+  },
+  
+  "evaluation": {
+    "cv_folds": 5,
+    "random_state": 42,
+    "stratify": true,
+    "metrics": [
+      "accuracy",
+      "f1_weighted",
+      "f1_macro",
+      "precision_weighted",
+      "recall_weighted"
+    ],
+    "primary_metric": "f1_weighted"
+  },
+  
+  "output": {
+    "submission_dir": "wang/output",
+    "model_dir": "wang/models",
+    "submission_format": "submission_{model_name}_{timestamp}.csv",
+    "model_format": "{model_name}_model_{timestamp}.pkl"
+  },
+  
+  "notes": [
+    "類別不平衡: 男生 74.7%, 女生 25.3%",
+    "使用 scale_pos_weight 和 auto_class_weights 處理不平衡",
+    "文字特徵使用 S-BERT 提取語義向量",
+    "保留 NaN 值讓模型自動學習缺失模式",
+    "創建異常指標保留異常信息同時進行 clipping"
+  ]
+}

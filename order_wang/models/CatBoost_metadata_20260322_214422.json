@@ -1,0 +1,25 @@
+{
+  "model_name": "CatBoost",
+  "cv_f1_score": 0.888205393353808,
+  "timestamp": "20260322_214422",
+  "n_features": 17,
+  "feature_names": [
+    "star_sign",
+    "height",
+    "weight",
+    "sleepiness",
+    "iq",
+    "fb_friends",
+    "yt",
+    "sbert_0",
+    "sbert_1",
+    "sbert_2",
+    "sbert_3",
+    "sbert_4",
+    "sbert_5",
+    "sbert_6",
+    "sbert_7",
+    "sbert_8",
+    "sbert_9"
+  ]
+}

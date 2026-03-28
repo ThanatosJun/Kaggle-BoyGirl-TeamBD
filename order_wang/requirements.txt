@@ -1,0 +1,21 @@
+# 性別預測專案 - 依賴套件
+
+# 數據處理
+pandas>=1.5.0
+numpy>=1.23.0
+
+# 機器學習
+scikit-learn>=1.2.0
+xgboost>=1.7.0
+catboost>=1.2.0
+optuna>=3.0.0
+
+# 文字特徵提取
+sentence-transformers>=2.2.0
+torch>=2.0.0
+
+# 模型儲存
+joblib>=1.2.0
+
+# 可選：進度條
+tqdm>=4.65.0
