@@ -7,6 +7,7 @@ import sys
 from datetime import datetime
 
 from src.data_loader import load_and_clean_data
+from src.features import engineer_features
 
 def get_latest_experiment(base_dir):
     """獲取最新的實驗資料夾"""
@@ -23,7 +24,7 @@ def get_latest_experiment(base_dir):
     return exp_folders[0]
 
 def main():
-    # 1. 讀取設定檔
+    # 1. 先讀取 default config（取得 base_dir 等基礎設定）
     with open("configs/default_config.yaml", "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
@@ -71,6 +72,19 @@ def main():
 
     exp_path = os.path.join(base_dir, exp_folder)
 
+    # ✅ 優先使用實驗資料夾裡保存的 config（確保 drop_cols、text_cols 等與訓練時一致）
+    exp_config_path = os.path.join(exp_path, 'config.yaml')
+    if os.path.exists(exp_config_path):
+        with open(exp_config_path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+        print(f"📋 使用實驗配置: {exp_config_path}")
+    else:
+        print(f"⚠️ 實驗資料夾中無 config.yaml，使用 default_config.yaml")
+
+    # 重新讀取 prediction 設定（可能被實驗 config 覆蓋）
+    pred_cfg = config.get('prediction', {})
+    output_dir = pred_cfg.get('output_dir', 'result')
+
     print(f"{'='*60}")
     print(f"🔮 使用實驗: {exp_folder}")
     print(f"📁 路徑: {exp_path}")
@@ -116,6 +130,7 @@ def main():
         all_preds = []
         for fold_idx, (fold_model, fold_imputer, fold_prep) in enumerate(zip(fold_models, fold_imputers, fold_preprocessors)):
             X_test_input = fold_imputer.transform(df_test) if fold_imputer is not None else df_test
+            X_test_input = engineer_features(X_test_input, config)
             X_test_trans = fold_prep.transform(X_test_input)
             preds = fold_model.predict(X_test_trans)
             all_preds.append(preds)
@@ -141,9 +156,10 @@ def main():
         preprocessor = joblib.load(prep_path)
         model = joblib.load(model_path)
 
-        # 4. 執行特徵轉換
+        # 4. 執行特徵轉換（補值 → 衍生特徵 → preprocessor，與訓練流程一致）
         print("✨ 進行特徵轉換...")
         X_test_input = imputer.transform(df_test) if imputer is not None else df_test
+        X_test_input = engineer_features(X_test_input, config)
         X_test_trans = preprocessor.transform(X_test_input)
 
         # 5. 進行預測
