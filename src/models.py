@@ -43,6 +43,11 @@ def get_model(config, override_params=None):
         params = dict(model_cfg['xgb_params'])
         if override_params:
             params.update(override_params)
+        # Force CPU path for reproducible CPU-only training.
+        params['tree_method'] = 'hist'
+        params.pop('predictor', None)
+        params.pop('gpu_id', None)
+        params.pop('device', None)
         return XGBClassifier(**params)
 
     if model_type == 'lightgbm':
@@ -56,6 +61,10 @@ def get_model(config, override_params=None):
         params = dict(model_cfg['lgbm_params'])
         if override_params:
             params.update(override_params)
+        # Keep LightGBM on CPU regardless of config leftovers.
+        params['device'] = 'cpu'
+        params['device_type'] = 'cpu'
+        params.pop('gpu_device_id', None)
         return LGBMClassifier(**params)
 
     if model_type == 'random_forest':
@@ -75,4 +84,7 @@ def get_model(config, override_params=None):
         params = dict(model_cfg['catboost_params'])
         if override_params:
             params.update(override_params)
+        # Keep CatBoost on CPU regardless of config leftovers.
+        params['task_type'] = 'CPU'
+        params.pop('devices', None)
         return CatBoostClassifier(**params)

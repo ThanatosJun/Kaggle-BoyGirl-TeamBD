@@ -11,10 +11,41 @@ from sklearn.model_selection import ParameterGrid
 from sklearn.utils.class_weight import compute_sample_weight
 
 from src.data_loader import load_and_clean_data, split_X_y
-from src.features import build_preprocessor, engineer_features
+from src.features import (
+    build_preprocessor,
+    engineer_features,
+    fit_pre_imputation_clip_bounds,
+    apply_pre_imputation_clip_bounds,
+)
 from src.models import get_model
 from src.evaluate import cross_validate_with_smote
 from src.imputation_strategies import get_imputer_from_config
+
+
+def _is_lightgbm_gpu_backend_error(exc: Exception) -> bool:
+    msg = str(exc).lower()
+    keywords = [
+        'no opencl device found',
+        'opencl',
+        'gpu tree learner was not enabled',
+        'gpu tree learner',
+        'cannot use gpu',
+    ]
+    return any(k in msg for k in keywords)
+
+
+def _force_lightgbm_cpu(model):
+    params = {}
+    if hasattr(model, 'get_params'):
+        current = model.get_params(deep=False)
+        if 'device' in current:
+            params['device'] = 'cpu'
+        if 'device_type' in current:
+            params['device_type'] = 'cpu'
+        if 'gpu_device_id' in current:
+            params['gpu_device_id'] = -1
+    if params and hasattr(model, 'set_params'):
+        model.set_params(**params)
 
 
 def resolve_model_type(config):
@@ -46,6 +77,47 @@ def resolve_param_grid(config, model_type, search_cfg):
         return model_cfg.get('param_grid_quick', {}).get(model_type, {})
 
     return model_cfg.get('param_grid', {}).get(model_type, {})
+
+
+def resolve_search_selection_score(search_cfg, cv_metrics_tmp, search_metric):
+    """Resolve score used by grid selection from CV mean/std.
+
+    Supported modes:
+    - mean:               score = mean(metric)
+    - mean_minus_std:     score = mean(metric) - std(metric)
+    - mean_minus_half_std:score = mean(metric) - 0.5 * std(metric)
+    - mean_minus_std_minus_gap: score = mean(metric) - std(metric) - gap_lambda * max(0, mean(train_metric)-mean(metric))
+    - mean_minus_half_std_minus_gap: score = mean(metric) - 0.5*std(metric) - gap_lambda * max(0, mean(train_metric)-mean(metric))
+    """
+    values = cv_metrics_tmp.get(search_metric)
+    if values is None:
+        raise ValueError(f"search.metric={search_metric} 不支援，可選: accuracy|f1|precision|recall")
+
+    metric_mean = float(np.mean(values))
+    metric_std = float(np.std(values))
+    train_metric_key = f"train_{search_metric}"
+    train_values = cv_metrics_tmp.get(train_metric_key)
+    train_metric_mean = float(np.mean(train_values)) if train_values is not None else None
+    overfit_gap = max(0.0, train_metric_mean - metric_mean) if train_metric_mean is not None else 0.0
+    gap_lambda = float(search_cfg.get('gap_lambda', 1.0))
+
+    mode = str(search_cfg.get('selection_mode', 'mean')).lower()
+    if mode == 'mean':
+        score = metric_mean
+    elif mode == 'mean_minus_std':
+        score = metric_mean - metric_std
+    elif mode == 'mean_minus_half_std':
+        score = metric_mean - 0.5 * metric_std
+    elif mode == 'mean_minus_std_minus_gap':
+        score = metric_mean - metric_std - gap_lambda * overfit_gap
+    elif mode == 'mean_minus_half_std_minus_gap':
+        score = metric_mean - 0.5 * metric_std - gap_lambda * overfit_gap
+    else:
+        raise ValueError(
+            f"search.selection_mode={mode} 不支援，可選: mean|mean_minus_std|mean_minus_half_std|mean_minus_std_minus_gap|mean_minus_half_std_minus_gap"
+        )
+
+    return score, metric_mean, metric_std, mode, train_metric_mean, overfit_gap, gap_lambda
 
 
 def resolve_class_weight_config(config):
@@ -264,8 +336,17 @@ def main():
     with open(args.config, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
+    training_cfg = config.get('training', {})
+    if not isinstance(training_cfg, dict):
+        training_cfg = {}
+    # Backward-compatible defaults in case some YAMLs miss these keys.
+    training_cfg.setdefault('save_dir', 'experiments')
+    training_cfg.setdefault('random_state', 42)
+    training_cfg.setdefault('use_smote', False)
+    config['training'] = training_cfg
+
     # 2. 創建實驗目錄
-    base_dir = config['training']['save_dir']
+    base_dir = training_cfg['save_dir']
     exp_id = get_next_experiment_id(base_dir)
     exp_name = config['experiment']['name']
     exp_folder = f"exp_{exp_id:03d}_{exp_name}"
@@ -309,6 +390,12 @@ def main():
     if search_enabled and param_grid:
         print(f"\n🔎 開始搜尋網格（model={model_type}, metric={search_metric}）...")
         best_score = float('-inf')
+        best_metric_mean = None
+        best_metric_std = None
+        best_train_metric_mean = None
+        best_overfit_gap = None
+        selection_mode_used = str(search_cfg.get('selection_mode', 'mean')).lower()
+        gap_lambda_used = float(search_cfg.get('gap_lambda', 1.0))
         best_params = None
         best_cv_metrics = None
         best_fold_models = None
@@ -321,14 +408,25 @@ def main():
                 X, y, preprocessor, candidate_model, config
             )
 
-            if search_metric not in cv_metrics_tmp:
-                raise ValueError(f"search.metric={search_metric} 不支援，可選: accuracy|f1|precision|recall")
-
-            score = float(np.mean(cv_metrics_tmp[search_metric]))
-            print(f"➡️ mean_{search_metric}: {score:.6f}")
+            score, metric_mean, metric_std, selection_mode_used, train_metric_mean, overfit_gap, gap_lambda_used = resolve_search_selection_score(
+                search_cfg,
+                cv_metrics_tmp,
+                search_metric,
+            )
+            print(
+                f"➡️ mean_{search_metric}: {metric_mean:.6f}, "
+                f"std_{search_metric}: {metric_std:.6f}, "
+                f"mean_train_{search_metric}: {(train_metric_mean if train_metric_mean is not None else float('nan')):.6f}, "
+                f"overfit_gap: {overfit_gap:.6f}, "
+                f"selection_score({selection_mode_used}): {score:.6f}"
+            )
 
             if score > best_score:
                 best_score = score
+                best_metric_mean = metric_mean
+                best_metric_std = metric_std
+                best_train_metric_mean = train_metric_mean
+                best_overfit_gap = overfit_gap
                 best_params = params
                 best_cv_metrics = cv_metrics_tmp
                 best_fold_models = fold_models_tmp
@@ -336,7 +434,13 @@ def main():
                 best_fold_imputers = fold_imputers_tmp
 
         print(f"\n✅ 搜尋網格完成，最佳參數: {best_params}")
-        print(f"✅ 最佳 mean_{search_metric}: {best_score:.6f}")
+        print(
+            f"✅ 最佳 selection_score({selection_mode_used}): {best_score:.6f} "
+            f"(mean_{search_metric}={best_metric_mean:.6f}, std_{search_metric}={best_metric_std:.6f}, "
+            f"mean_train_{search_metric}={(best_train_metric_mean if best_train_metric_mean is not None else float('nan')):.6f}, "
+            f"overfit_gap={(best_overfit_gap if best_overfit_gap is not None else float('nan')):.6f}, "
+            f"gap_lambda={gap_lambda_used:.4f})"
+        )
 
         # 使用最佳參數建立最終模型，並沿用最佳 CV 結果
         model = get_model(config, override_params=best_params)
@@ -351,7 +455,13 @@ def main():
             json.dump({
                 'model_type': model_type,
                 'search_metric': search_metric,
-                'best_score': best_score,
+                'selection_mode': selection_mode_used,
+                'gap_lambda': gap_lambda_used,
+                'best_selection_score': best_score,
+                'best_metric_mean': best_metric_mean,
+                'best_metric_std': best_metric_std,
+                'best_train_metric_mean': best_train_metric_mean,
+                'best_overfit_gap': best_overfit_gap,
                 'best_params': best_params
             }, f, indent=2, ensure_ascii=False)
         print(f"💾 已保存最佳參數: {best_params_path}")
@@ -381,19 +491,34 @@ def main():
         metrics_summary['search_enabled'] = True
         metrics_summary['search_metric'] = search_metric
         metrics_summary['search_model_type'] = model_type
+        metrics_summary['search_selection_mode'] = str(search_cfg.get('selection_mode', 'mean')).lower()
+        metrics_summary['search_gap_lambda'] = float(search_cfg.get('gap_lambda', 1.0))
 
     # 9. 在「所有」訓練資料上，訓練最終正式模型
     print("\n🚀 正在使用「所有訓練集」訓練最終對外預測模型...")
-    # 與 CV 保持一致：先做自訂補值，再做 preprocessor
+    # 與 CV 保持一致：先 clipping outliers，再做自訂補值，再做衍生特徵與 preprocessor
+    prep_cfg = config.get('preprocessing', {})
+    clip_cols = prep_cfg.get('pre_imputation_clip_cols', ['height', 'weight'])
+    clip_lower = prep_cfg.get('clipping_lower_percentile', 1)
+    clip_upper = prep_cfg.get('clipping_upper_percentile', 99)
+
+    clip_bounds = fit_pre_imputation_clip_bounds(
+        X,
+        clip_cols,
+        lower_percentile=clip_lower,
+        upper_percentile=clip_upper,
+    )
+    X = apply_pre_imputation_clip_bounds(X, clip_bounds)
+
     full_imputer = get_imputer_from_config(config)
     X_imputed = full_imputer.fit_transform(X, y)
     # 衍生特徵工程（與 CV fold 保持一致）
     X_imputed = engineer_features(X_imputed, config)
     X_trans = preprocessor.fit_transform(X_imputed)
 
-    if config['training']['use_smote']:
+    if training_cfg.get('use_smote', False):
         from imblearn.over_sampling import SMOTE
-        smote_params = config.get('training', {}).get('smote_params', {'random_state': config['training']['random_state']})
+        smote_params = training_cfg.get('smote_params', {'random_state': training_cfg.get('random_state', 42)})
         smote = SMOTE(**smote_params)
         X_trans, y = smote.fit_resample(X_trans, y)
 
@@ -406,6 +531,16 @@ def main():
         model.fit(X_trans, y, **fit_kwargs)
     except TypeError:
         model.fit(X_trans, y)
+    except Exception as exc:
+        if _is_lightgbm_gpu_backend_error(exc):
+            print("⚠️ Full-train 偵測到 LightGBM GPU/OpenCL 問題，改用 CPU 重訓。")
+            _force_lightgbm_cpu(model)
+            try:
+                model.fit(X_trans, y, **fit_kwargs)
+            except TypeError:
+                model.fit(X_trans, y)
+        else:
+            raise
 
     # 10a. 計算 Full Train 指標（供實驗記錄對比 CV 與 Full Train）
     full_train_preds = model.predict(X_trans)

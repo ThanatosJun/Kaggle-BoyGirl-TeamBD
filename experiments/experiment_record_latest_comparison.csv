@@ -1,0 +1,17 @@
+config_file,status,previous_experiment_folder,new_experiment_folder,prev_f1,new_f1,delta_f1,prev_accuracy,new_accuracy,delta_accuracy
+configs/exp1_CB_method0.yaml,success,exp_001_exp1_CB_method0,exp_039_exp1_CB_method0,0.925902,0.930348,+0.004446,0.889020,0.896078,+0.007059
+configs/exp1_CB_method1.yaml,success,exp_002_exp1_CB_method1,exp_040_exp1_CB_method1,0.841896,0.924337,+0.082441,0.756471,0.889020,+0.132549
+configs/exp1_CB_method2.yaml,success,exp_003_exp1_CB_method2,exp_041_exp1_CB_method2,0.904328,0.904221,-0.000107,0.855966,0.858319,+0.002353
+configs/exp1_CB_method3.yaml,success,exp_004_exp1_CB_method3,exp_042_exp1_CB_method3,0.811426,0.894337,+0.082912,0.718711,0.844230,+0.125518
+configs/exp1_LGBM_method0.yaml,success,exp_005_exp1_LGBM_method0,exp_043_exp1_LGBM_method0,0.895675,0.895442,-0.000233,0.848768,0.848852,+0.000084
+configs/exp1_LGBM_method1.yaml,success,exp_006_exp1_LGBM_method1,exp_044_exp1_LGBM_method1,0.763375,0.904366,+0.140991,0.671429,0.862997,+0.191569
+configs/exp1_LGBM_method2.yaml,success,exp_007_exp1_LGBM_method2,exp_045_exp1_LGBM_method2,0.869058,0.878807,+0.009749,0.811092,0.827619,+0.016527
+configs/exp1_LGBM_method3.yaml,success,exp_008_exp1_LGBM_method3,exp_046_exp1_LGBM_method3,0.759893,0.871386,+0.111493,0.657367,0.815798,+0.158431
+configs/exp1_RF_method0.yaml,success,exp_009_exp1_RF_method0,exp_047_exp1_RF_method0,0.898148,0.898148,+0.000000,0.851064,0.851064,+0.000000
+configs/exp1_RF_method1.yaml,success,exp_010_exp1_RF_method1,exp_048_exp1_RF_method1,0.814517,0.907281,+0.092764,0.728291,0.865322,+0.137031
+configs/exp1_RF_method2.yaml,success,exp_011_exp1_RF_method2,exp_049_exp1_RF_method2,0.886011,0.886011,+0.000000,0.832241,0.832241,+0.000000
+configs/exp1_RF_method3.yaml,success,exp_012_exp1_RF_method3,exp_050_exp1_RF_method3,0.784709,0.867167,+0.082457,0.681008,0.808683,+0.127675
+configs/exp1_XGB_method0.yaml,success,exp_013_exp1_XGB_method0,exp_051_exp1_XGB_method0,0.914782,0.911966,-0.002816,0.874622,0.872381,-0.002241
+configs/exp1_XGB_method1.yaml,success,exp_014_exp1_XGB_method1,exp_052_exp1_XGB_method1,0.808594,0.909194,+0.100600,0.723417,0.867675,+0.144258
+configs/exp1_XGB_method2.yaml,success,exp_015_exp1_XGB_method2,exp_053_exp1_XGB_method2,0.885244,0.888288,+0.003044,0.832269,0.836947,+0.004678
+configs/exp1_XGB_method3.yaml,success,,exp_054_exp1_XGB_method3,,0.873833,,,0.815770,

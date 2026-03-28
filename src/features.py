@@ -48,6 +48,37 @@ def engineer_features(X: pd.DataFrame, config: dict) -> pd.DataFrame:
     return X
 
 
+def fit_pre_imputation_clip_bounds(
+    X: pd.DataFrame,
+    clip_cols,
+    lower_percentile=1,
+    upper_percentile=99,
+):
+    """Fit clipping bounds on train fold before imputation."""
+    bounds = {}
+    for col in clip_cols:
+        if col not in X.columns:
+            continue
+        values = pd.to_numeric(X[col], errors='coerce').to_numpy(dtype=float)
+        if np.all(np.isnan(values)):
+            continue
+        lower = float(np.nanpercentile(values, lower_percentile))
+        upper = float(np.nanpercentile(values, upper_percentile))
+        bounds[col] = (lower, upper)
+    return bounds
+
+
+def apply_pre_imputation_clip_bounds(X: pd.DataFrame, bounds: dict) -> pd.DataFrame:
+    """Apply pre-imputation clipping bounds to dataframe columns."""
+    X_out = X.copy()
+    for col, (lower, upper) in bounds.items():
+        if col not in X_out.columns:
+            continue
+        series = pd.to_numeric(X_out[col], errors='coerce')
+        X_out[col] = series.clip(lower=lower, upper=upper)
+    return X_out
+
+
 class ClippingTransformer(BaseEstimator, TransformerMixin):
     """自訂 Transformer：針對數值型特徵進行極端值剪裁 (Clipping)"""
     def __init__(self, lower_percentile=1, upper_percentile=99):

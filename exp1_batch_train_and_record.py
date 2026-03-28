@@ -4,6 +4,7 @@ import json
 import re
 import subprocess
 import sys
+from shutil import copy2
 from datetime import datetime
 from pathlib import Path
 
@@ -69,6 +70,144 @@ def append_record(csv_path: Path, row: dict):
         if not file_exists:
             writer.writeheader()
         writer.writerow(row)
+
+
+def backup_existing_csv(csv_path: Path):
+    """Backup existing record file before appending new rows."""
+    if not csv_path.exists():
+        return None
+
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = csv_path.with_name(f"{csv_path.stem}.bak_{ts}{csv_path.suffix}")
+    copy2(csv_path, backup_path)
+    return backup_path
+
+
+def _to_float(v):
+    try:
+        if v is None or v == "":
+            return None
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def load_latest_success_by_config(csv_path: Path):
+    """Load latest successful record per config for before/after comparison."""
+    latest = {}
+    if not csv_path.exists():
+        return latest
+
+    with csv_path.open("r", encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if not isinstance(row, dict):
+                continue
+            config_file = row.get("config_file")
+            status = row.get("status")
+            if not config_file or status != "success":
+                continue
+            latest[config_file] = row
+
+    return latest
+
+
+def write_comparison_csv(csv_path: Path, rows: list):
+    if not rows:
+        return None
+
+    out_path = csv_path.with_name(f"{csv_path.stem}_latest_comparison.csv")
+    fieldnames = [
+        "config_file",
+        "status",
+        "previous_experiment_folder",
+        "new_experiment_folder",
+        "prev_f1",
+        "new_f1",
+        "delta_f1",
+        "prev_accuracy",
+        "new_accuracy",
+        "delta_accuracy",
+    ]
+    with out_path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for r in rows:
+            writer.writerow(r)
+    return out_path
+
+
+def summarize_comparison(run_rows: list, previous_map: dict):
+    """Build comparison rows and console summary for this run."""
+    comparison_rows = []
+
+    improved_f1 = 0
+    degraded_f1 = 0
+    same_f1 = 0
+    new_configs = 0
+
+    for row in run_rows:
+        cfg = row["config_file"]
+        prev = previous_map.get(cfg)
+
+        new_f1 = _to_float(row.get("mean_f1"))
+        new_acc = _to_float(row.get("mean_accuracy"))
+
+        prev_f1 = _to_float(prev.get("mean_f1")) if prev else None
+        prev_acc = _to_float(prev.get("mean_accuracy")) if prev else None
+
+        delta_f1 = (new_f1 - prev_f1) if (new_f1 is not None and prev_f1 is not None) else None
+        delta_acc = (new_acc - prev_acc) if (new_acc is not None and prev_acc is not None) else None
+
+        if row.get("status") != "success":
+            pass
+        elif prev_f1 is None:
+            new_configs += 1
+        elif delta_f1 is not None:
+            if delta_f1 > 1e-12:
+                improved_f1 += 1
+            elif delta_f1 < -1e-12:
+                degraded_f1 += 1
+            else:
+                same_f1 += 1
+
+        comparison_rows.append({
+            "config_file": cfg,
+            "status": row.get("status"),
+            "previous_experiment_folder": prev.get("experiment_folder", "") if prev else "",
+            "new_experiment_folder": row.get("experiment_folder", ""),
+            "prev_f1": "" if prev_f1 is None else f"{prev_f1:.6f}",
+            "new_f1": "" if new_f1 is None else f"{new_f1:.6f}",
+            "delta_f1": "" if delta_f1 is None else f"{delta_f1:+.6f}",
+            "prev_accuracy": "" if prev_acc is None else f"{prev_acc:.6f}",
+            "new_accuracy": "" if new_acc is None else f"{new_acc:.6f}",
+            "delta_accuracy": "" if delta_acc is None else f"{delta_acc:+.6f}",
+        })
+
+    print("\n=== Comparison vs Previous Run (Exp1) ===")
+    print(
+        f"Configs: {len(run_rows)} | "
+        f"Improved F1: {improved_f1} | Degraded F1: {degraded_f1} | "
+        f"Same F1: {same_f1} | New configs: {new_configs}"
+    )
+
+    for r in comparison_rows:
+        if r["status"] != "success":
+            print(f"[failed] {r['config_file']} -> no comparison")
+            continue
+        if not r["prev_f1"]:
+            print(
+                f"[new] {r['config_file']} -> "
+                f"F1={r['new_f1']}, Acc={r['new_accuracy']}"
+            )
+            continue
+        print(
+            f"[cmp] {r['config_file']} -> "
+            f"F1 {r['prev_f1']} -> {r['new_f1']} ({r['delta_f1']}), "
+            f"Acc {r['prev_accuracy']} -> {r['new_accuracy']} ({r['delta_accuracy']})"
+        )
+
+    return comparison_rows
 
 
 def run_config(config_path: Path, project_root: Path, experiments_dir: Path, main_script: Path):
@@ -164,6 +303,11 @@ def main():
     output_csv = project_root / args.output_csv
     main_script = project_root / args.main_script
 
+    previous_map = load_latest_success_by_config(output_csv)
+    backup_path = backup_existing_csv(output_csv)
+    if backup_path is not None:
+        print(f"Backup previous records: {backup_path}")
+
     config_paths = sorted(project_root.glob(args.config_glob))
     if not config_paths:
         print(f"No config files matched: {args.config_glob}")
@@ -171,9 +315,11 @@ def main():
 
     print(f"Found {len(config_paths)} configs")
 
+    run_rows = []
     for config_path in config_paths:
         row = run_config(config_path, project_root, experiments_dir, main_script)
         append_record(output_csv, row)
+        run_rows.append(row)
 
         print(
             f"[{row['status']}] {row['config_file']} -> "
@@ -184,6 +330,11 @@ def main():
         if row["status"] != "success" and args.stop_on_error:
             print("Stop on error enabled, aborting batch.")
             sys.exit(1)
+
+    comparison_rows = summarize_comparison(run_rows, previous_map)
+    cmp_csv = write_comparison_csv(output_csv, comparison_rows)
+    if cmp_csv is not None:
+        print(f"Comparison CSV written to: {cmp_csv}")
 
     print(f"\nDone. Records written to: {output_csv}")
 

@@ -104,6 +104,8 @@ preprocessing:
   # 數值剪裁百分位數
   clipping_lower_percentile: 1
   clipping_upper_percentile: 99
+  # 補值前先對指定欄位做 clipping（固定啟用）
+  pre_imputation_clip_cols: ["height", "weight"]
   log_clip_min: 0
 
   # 標準化方法
@@ -127,8 +129,8 @@ model:
   xgb_params:
     objective: "binary:logistic"
     eval_metric: "logloss"
-    learning_rate: 0.1
-    max_depth: 6
+    learning_rate: 0.03
+    max_depth: 8
     random_state: 42
     enable_categorical: false
 
@@ -168,7 +170,7 @@ model:
   # ───────────────────────────────────────────────────────────────────────────
   catboost_params:
     iterations: 500
-    learning_rate: 0.05
+    learning_rate: 0.03
     depth: 8                # ✅ 統一為 8
     l2_leaf_reg: 3
     border_count: 128
@@ -229,12 +231,26 @@ search:
   param_grid_mode: full
   # 🔧 評估指標: accuracy | f1 | precision | recall
   metric: "f1"
+  # 🔧 Grid 選分方式:
+  # mean | mean_minus_std | mean_minus_half_std |
+  # mean_minus_std_minus_gap | mean_minus_half_std_minus_gap
+  # 建議：想抑制 overfitting 可用 mean_minus_std_minus_gap
+  selection_mode: "mean_minus_std_minus_gap"
+  # gap 懲罰係數（selection_mode 包含 _minus_gap 時生效）
+  gap_lambda: 1.0
 
 training:
   # 🔧 交叉驗證折數
   n_splits: 5
   # 🔧 是否使用 SMOTE 過採樣
   use_smote: false
+  # Early Stopping（於 CV fold 的 validation 上判斷）
+  early_stopping:
+    enabled: true
+    rounds: 50
+    use_best_model: true
+    verbose: false
+    models: ["catboost", "lightgbm", "xgboost"]
   # 🔧 類別權重（已統一為字符串格式）
   # 選項: "balanced" | null | {0: 1.0, 1: 1.0}
   class_weight: "balanced"
@@ -242,45 +258,3 @@ training:
   save_dir: "experiments"
   smote_params:
     random_state: 42
-
-prediction:
-  # 預測模式: full | fold
-  default_mode: "full"
-  output_dir: "result"
-
-# =============================================================================
-# 快速實驗配置範例
-# =============================================================================
-#
-# 【Exp1 - Method0 Baseline】
-#   preprocessing.imputation_method: "method0"
-#   features.add_bmi: false                      # BMI = weight / (height/100)^2
-#   features.text_cols: []
-#
-# 【Exp1 - Method2 論文範圍】
-#   preprocessing.imputation_method: "method2"
-#   features.add_bmi: false                      # BMI = weight / (height/100)^2
-#   features.text_cols: []
-#
-# 【Exp2 - 加入 BMI】
-#   preprocessing.imputation_method: "method0"
-#   features.add_bmi: false                      # BMI = weight / (height/100)^2
-#   features.text_cols: []
-#
-# 【Exp3 - Handcrafted 手工特徵】
-#   preprocessing.imputation_method: "method0"
-#   features.add_bmi: false                      # BMI = weight / (height/100)^2
-#   features.text_cols: ["self_intro"]
-#   features.text_embedding_method: "handcrafted"
-#   data.drop_cols: ["id", "yt"]  # 保留 self_intro
-#
-# 【Exp3 - MiniLM + PCA64】
-#   preprocessing.imputation_method: "method0"
-#   features.add_bmi: false                      # BMI = weight / (height/100)^2
-#   features.text_cols: ["self_intro"]
-#   features.text_embedding_method: "minilm"
-#   features.use_pca: true
-#   features.pca_n_components: 64
-#   data.drop_cols: ["id", "yt"]  # 保留 self_intro
-#
-# =============================================================================
