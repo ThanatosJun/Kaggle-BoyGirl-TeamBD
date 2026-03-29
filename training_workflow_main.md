@@ -1,24 +1,56 @@
-# Training 訓練規劃順序 train.csv
-- **EDA**：找出 dataset 的 feature 特性
-- **Cleaning**：移除 outliers、無預測能力的欄位
-- **Data Split**：train.csv 切分成 train/validation  **(⚠️ 注意：必須在 Imputation 前執行)**
-- **Imputation**：填補空缺值 **(⚠️ 注意：僅能使用 train 算出來的統計值填補)**
-- **Model Selection**：依 config 切換 xgboost / lightgbm / random_forest
-- **Feature Transformation**：one-hot encoding、scaling
-- **Feature Selection**：Filter Methods + Embedded Methods
-- **Feature Extraction**(可選擇)：PCA
-- **Model Training & Data Balance**：5-fold CV **(⚠️ 注意：若使用 SMOTE，必須在每次 CV 迴圈內部僅針對 Train fold 執行)**
-- **Model Evaluation**：Accuracy, F1-Score
+# Training 真實規劃順序 train.csv (5-Fold CV 流程)
 
-# Prediction 規劃順序 test.csv
-- **Cleaning**: 同 train.csv 的清理步驟，只是不用移除 outliers
-- **Imputation**: 同 train.csv 的填補步驟 **(⚠️ 注意：使用 train.csv 算出的統計值進行填補)**
-- **Feature Transformation**: 同 train.csv 的轉換步驟 **(⚠️ 注意：使用 train.csv 算出的參數如 StandardScaler 進行 transform)**
-- **Model Prediction**: 支援兩種模式
-  - `full`: 使用 `preprocessor.pkl` + `model.pkl`
-  - `fold`: 使用 `fold_i_preprocessor.pkl` + `fold_i_model.pkl` 進行投票集成
-- **Output Mapping**: 將預測結果轉換回原始格式（0→2 for 女生，1→1 for 男生）
-- **Output File**: 輸出到 `result/`（`submission_full.csv`, `submission_fold.csv` 等）
+- **EDA**：找出 dataset 的 feature 特性與極端值分佈
+
+- **Data Loading & Basic Cleaning**：丟棄無用欄位 (id)，過濾掉 Target (gender) 空缺的紀錄，並轉換 gender (1=男, 0=女)。
+
+- **K-Fold Splitting**：將 train.csv 切分成 5 個 Train / Validation 組合 **(⚠️ 核心原則：後續所有 Imputation / Scaling / SMOTE 皆在 CV 迴圈內部嚴格防範 Data Leakage)**。
+
+- **Pre-Imputation Clipping**：針對極端值特徵 (如 height, weight, iq) 以 **Train Fold** 計算 1%~99% 分位數並截斷 Train/Val (註：此步驟在補值前進行)。
+
+- **Custom Imputation (Method 0~3)**：利用 `Gender` 或 `Global` 計算統計量進行空缺值填補 (Fit in Train Fold, Transform in Train & Val Folds)。
+
+- **Derived Feature Engineering**：在補值後，計算特徵工程 (如 `height_weight_ratio`, `BMI`, `ponderal_index`)。
+
+- **Feature Transformation (ColumnTransformer)**: 
+
+  - 數值特徵：StandardScaler & 長尾變數 log1p
+
+  - 類別特徵：One-Hot Encoding
+
+  - 文本特徵 (Text)：TF-IDF 或 MiniLM 分詞鑲嵌 (可選附帶 PCA 降維)
+
+- **Data Balance (SMOTE)**: **(⚠️ 僅針對轉換後的 Train Fold 內部執行，且不在 Val 執行)**
+
+- **Model Selection & Grid Search**: 依 config 切換 CatBoost / XGBoost / LightGBM / Random_Forest，並透過內部循環挑選最佳參數。
+
+- **Model Training**：5-fold 迴圈各自訓練並保存 `fold_i_model.pkl`、`fold_i_preprocessor.pkl`、`fold_i_imputer.pkl`
+
+- **Feature Importance Evaluation**：統整各 Fold 歸一化後的 Feature Importance，並輸出結果日誌。
+
+
+
+# Prediction 真實規劃順序 test.csv
+
+- **Data Loading & Basic Cleaning**: 丟掉無用特徵並將對應欄位強轉數值，保留對照 ID。
+
+- **K-Fold Model Loading**: 從實驗目錄中載入 `fold_i_model`, `fold_i_preprocessor`, `fold_i_imputer`。
+
+- **Pre-Imputation Clipping**: 載入並使用訓練階段留下來的 Clipping Bounds 進行極端值截斷。
+
+- **Inference Pipeline (迴圈處理每個 fold)**:
+
+  - **Imputation**: 使用該 Fold 專屬的 `imputer` 進行 Transform 填補。
+
+  - **Derived Feature Engineering**: 計算 BMI, Ratio 等衍生特徵。
+
+  - **Feature Transformation**: 使用該 Fold 專屬的 `preprocessor` 轉換資料。
+
+  - **Model Prediction**: 支援 `full` (整體模型預測) 以及 `fold` (5個 fold 模型進行投票集成)。
+
+- **Output Mapping**: 將預測結果轉換回原始格式（0→2 for 女生，1→1 for 男生）。
+
+- **Output File**: 輸出到 `result/`（`submission_*_fold.csv` 等）。
 
 ## 預測目標： gender (binary classification)
 ## 特徵需要處理的項目：

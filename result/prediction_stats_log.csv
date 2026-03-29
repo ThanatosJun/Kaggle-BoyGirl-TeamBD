@@ -56,3 +56,4 @@ timestamp,experiment,mode,male_count,female_count,total_count,output_file
 2026-03-28 00:03:55,exp_017_exp3_tfidf_handcrafted_exp1base,full,304,122,426,result\submission_exp_017_exp3_tfidf_handcrafted_exp1base_full.csv
 2026-03-28 01:09:16,exp_018_exp3_handcrafted_exp1base,full,283,143,426,result\submission_exp_018_exp3_handcrafted_exp1base_full.csv
 2026-03-28 01:18:44,exp_020_exp3_handcrafted15_exp1base,full,299,127,426,result\submission_exp_020_exp3_handcrafted15_exp1base_full.csv
+2026-03-29 15:58:15,exp_088_exp3_tfidf_handcrafted_exp1base,full,297,129,426,result/submission_exp_088_exp3_tfidf_handcrafted_exp1base_full.csv

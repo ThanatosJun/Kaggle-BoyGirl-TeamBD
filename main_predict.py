@@ -25,7 +25,15 @@ def get_latest_experiment(base_dir):
 
 def main():
     # 1. 先讀取 default config（取得 base_dir 等基礎設定）
-    with open("configs/default_config.yaml", "r", encoding="utf-8") as f:
+    default_config_path = "configs/default_config.yaml"
+    if not os.path.exists(default_config_path):
+        # 嘗試備用的 default config
+        if os.path.exists("configs/default_config_all.yaml"):
+            default_config_path = "configs/default_config_all.yaml"
+        elif os.path.exists("configs/default_config_exp3.yaml"):
+            default_config_path = "configs/default_config_exp3.yaml"
+            
+    with open(default_config_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
     base_dir = config['training']['save_dir']
