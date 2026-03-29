@@ -1,0 +1,14 @@
+{
+  "model_type": "random_forest",
+  "search_metric": "f1",
+  "selection_mode": "mean_minus_std",
+  "best_selection_score": 0.8949380081641322,
+  "best_metric_mean": 0.9184681716133329,
+  "best_metric_std": 0.023530163449200805,
+  "best_params": {
+    "max_depth": 12,
+    "min_samples_leaf": 2,
+    "min_samples_split": 5,
+    "n_estimators": 400
+  }
+}

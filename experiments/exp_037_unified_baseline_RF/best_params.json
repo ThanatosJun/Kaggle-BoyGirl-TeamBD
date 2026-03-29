@@ -1,0 +1,17 @@
+{
+  "model_type": "random_forest",
+  "search_metric": "f1",
+  "selection_mode": "mean_minus_std_minus_gap",
+  "gap_lambda": 1.0,
+  "best_selection_score": 0.8472011708079066,
+  "best_metric_mean": 0.9196196768510976,
+  "best_metric_std": 0.02803286423989372,
+  "best_train_metric_mean": 0.9640053186543949,
+  "best_overfit_gap": 0.04438564180329729,
+  "best_params": {
+    "max_depth": 10,
+    "min_samples_leaf": 3,
+    "min_samples_split": 5,
+    "n_estimators": 300
+  }
+}

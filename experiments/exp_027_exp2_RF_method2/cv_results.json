@@ -1,0 +1,137 @@
+{
+  "mean_accuracy": 0.8582072829131653,
+  "std_accuracy": 0.038636945997667115,
+  "mean_f1": 0.9030732555391386,
+  "std_f1": 0.025514138784626807,
+  "mean_precision": 0.9248097632436092,
+  "std_precision": 0.033233460417861405,
+  "mean_recall": 0.882986111111111,
+  "std_recall": 0.029066105933016687,
+  "fold_results": {
+    "accuracy": [
+      0.8588235294117647,
+      0.8941176470588236,
+      0.8,
+      0.8333333333333334,
+      0.9047619047619048
+    ],
+    "f1": [
+      0.9,
+      0.9256198347107438,
+      0.8661417322834646,
+      0.8870967741935484,
+      0.9365079365079365
+    ],
+    "precision": [
+      0.9473684210526315,
+      0.9655172413793104,
+      0.873015873015873,
+      0.9016393442622951,
+      0.9365079365079365
+    ],
+    "recall": [
+      0.8571428571428571,
+      0.8888888888888888,
+      0.859375,
+      0.873015873015873,
+      0.9365079365079365
+    ]
+  },
+  "full_train_accuracy": 0.9030732860520094,
+  "full_train_f1": 0.9328968903436988,
+  "full_train_precision": 0.9661016949152542,
+  "full_train_recall": 0.9018987341772152,
+  "full_train_metric_scope": "train_set_only_no_validation",
+  "feature_importance": {
+    "cv_summary": [
+      {
+        "feature": "num__height",
+        "cv_mean_importance_norm": 0.38296785002065076
+      },
+      {
+        "feature": "num__weight",
+        "cv_mean_importance_norm": 0.23861721339890313
+      },
+      {
+        "feature": "num__bmi",
+        "cv_mean_importance_norm": 0.13036306081682209
+      },
+      {
+        "feature": "log__fb_friends",
+        "cv_mean_importance_norm": 0.08315275148516774
+      },
+      {
+        "feature": "num__iq",
+        "cv_mean_importance_norm": 0.0648140483784124
+      },
+      {
+        "feature": "ord__sleepiness",
+        "cv_mean_importance_norm": 0.027301528223205335
+      },
+      {
+        "feature": "cat__phone_os_Apple",
+        "cv_mean_importance_norm": 0.010494297361511699
+      },
+      {
+        "feature": "cat__phone_os_Android",
+        "cv_mean_importance_norm": 0.009406175596792521
+      },
+      {
+        "feature": "cat__star_sign_雙魚座",
+        "cv_mean_importance_norm": 0.007227904251578878
+      },
+      {
+        "feature": "cat__star_sign_獅子座",
+        "cv_mean_importance_norm": 0.0061505054508949105
+      },
+      {
+        "feature": "cat__star_sign_水瓶座",
+        "cv_mean_importance_norm": 0.005858981422825909
+      },
+      {
+        "feature": "cat__star_sign_摩羯座",
+        "cv_mean_importance_norm": 0.005417317370749613
+      },
+      {
+        "feature": "cat__star_sign_雙子座",
+        "cv_mean_importance_norm": 0.005022223663902645
+      },
+      {
+        "feature": "cat__star_sign_天秤座",
+        "cv_mean_importance_norm": 0.004776485587292883
+      },
+      {
+        "feature": "cat__star_sign_天蠍座",
+        "cv_mean_importance_norm": 0.004283981813108473
+      },
+      {
+        "feature": "cat__star_sign_巨蟹座",
+        "cv_mean_importance_norm": 0.003947378117691686
+      },
+      {
+        "feature": "cat__star_sign_處女座",
+        "cv_mean_importance_norm": 0.0036120206581790174
+      },
+      {
+        "feature": "cat__star_sign_射手座",
+        "cv_mean_importance_norm": 0.0033814708493719466
+      },
+      {
+        "feature": "cat__star_sign_金牛座",
+        "cv_mean_importance_norm": 0.002085868147437029
+      },
+      {
+        "feature": "cat__star_sign_牡羊座",
+        "cv_mean_importance_norm": 0.0011189373855014216
+      },
+      {
+        "feature": "cat__phone_os_JohnCena",
+        "cv_mean_importance_norm": 0.0
+      },
+      {
+        "feature": "cat__phone_os_Windows Phone",
+        "cv_mean_importance_norm": 0.0
+      }
+    ]
+  }
+}

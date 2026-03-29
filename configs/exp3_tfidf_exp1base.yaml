@@ -1,0 +1,164 @@
+# =============================================================================
+# Exp3: TF-IDF 文本嵌入（20維）
+# =============================================================================
+
+experiment:
+  name: "exp3_tfidf_exp1base"
+  description: "Exp3: TF-IDF 文本嵌入（20維統計特徵）"
+
+data:
+  train_path: "dataset/train.csv"
+  test_path: "dataset/test.csv"
+  drop_cols: ["id", "yt"]
+  target_col: "gender"
+  target_train_mapping:
+    "男": 1
+    "女": 0
+    "Male": 1
+    "Female": 0
+    1: 1
+    2: 0
+    0: 0
+    "1": 1
+    "0": 0
+  target_output_mapping:
+    0: 2
+    1: 1
+
+features:
+  numeric_cols: ["height", "weight", "iq"]
+  numeric_log_cols: ["fb_friends"]
+  categorical_cols: ["star_sign", "phone_os"]
+  ordinal_cols: ["sleepiness"]
+  
+  text_cols: ["self_intro"]
+  text_embedding_method: "tfidf"
+  use_pca: false
+  pca_n_components: 30
+  tfidf_max_features: 20
+  text_minilm_pooling: "mean"
+  text_model_name: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+  text_model_cache_dir: null
+  text_model_revision: "e8f8c211226b894fcb81acc59f3b34ba3efd5f42"
+  
+  add_bmi: false
+  add_weight_height_ratio: false
+  add_ponderal_index: false
+
+preprocessing:
+  imputation_method: "method0"
+  imputation_mode: "old"
+  numeric_imputer_strategy: "median"
+  clipping_lower_percentile: 1
+  clipping_upper_percentile: 99
+  pre_imputation_clip_cols: ["height", "weight"]
+  log_clip_min: 0
+  scaler: "standard"
+  onehot_handle_unknown: "ignore"
+  onehot_sparse_output: false
+
+model:
+  type: "catboost"
+
+  xgb_params:
+    objective: "binary:logistic"
+    eval_metric: "logloss"
+    learning_rate: 0.1
+    max_depth: 6
+    random_state: 42
+    enable_categorical: false
+
+  lgbm_params:
+    objective: "binary"
+    learning_rate: 0.03
+    n_estimators: 500
+    num_leaves: 15
+    max_depth: 5
+    min_child_samples: 30
+    feature_fraction: 0.8
+    bagging_fraction: 0.8
+    bagging_freq: 1
+    reg_lambda: 2.0
+    reg_alpha: 0.5
+    verbosity: -1
+    random_state: 42
+
+  random_forest_params:
+    n_estimators: 300
+    max_depth: 10
+    min_samples_split: 3
+    min_samples_leaf: 5
+    max_features: "sqrt"
+    n_jobs: -1
+    random_state: 42
+
+  catboost_params:
+    iterations: 500
+    learning_rate: 0.05
+    depth: 8
+    l2_leaf_reg: 3
+    border_count: 128
+    random_seed: 42
+    verbose: False
+    auto_class_weights: null
+
+  param_grid:
+    xgboost:
+      learning_rate: [0.03, 0.05, 0.1]
+      max_depth: [4, 6, 8]
+    lightgbm:
+      learning_rate: [0.03, 0.05]
+      num_leaves: [15, 31]
+      max_depth: [4, 5, 6]
+    random_forest:
+      n_estimators: [300, 400, 600]
+      max_depth: [8, 10, 12]
+      min_samples_leaf: [2, 3, 5]
+      min_samples_split: [5, 10]
+    catboost:
+      learning_rate: [0.03, 0.05, 0.1]
+      depth: [4, 6, 8]
+      l2_leaf_reg: [1, 3, 5]
+
+  param_grid_quick:
+    xgboost:
+      learning_rate: [0.05, 0.1]
+      max_depth: [4, 6]
+    lightgbm:
+      learning_rate: [0.03, 0.05]
+      num_leaves: [15]
+      max_depth: [4, 5]
+    random_forest:
+      n_estimators: [300, 400]
+      max_depth: [8, 10]
+      min_samples_leaf: [2, 3]
+      min_samples_split: [5, 10]
+    catboost:
+      learning_rate: [0.03, 0.05]
+      depth: [4, 6]
+
+search:
+  enabled: false
+  param_grid_mode: full
+  metric: "f1"
+  selection_mode: "mean_minus_std_minus_gap"
+  gap_lambda: 1.0
+
+training:
+  n_splits: 5
+  use_smote: false
+  early_stopping:
+    enabled: true
+    rounds: 50
+    use_best_model: true
+    verbose: false
+    models: ["catboost", "lightgbm", "xgboost"]
+  class_weight: "balanced"
+  random_state: 42
+  save_dir: "experiments"
+  smote_params:
+    random_state: 42
+
+prediction:
+  default_mode: "full"
+  output_dir: "result"

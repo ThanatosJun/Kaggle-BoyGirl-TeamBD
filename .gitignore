@@ -41,7 +41,7 @@ models_saved/
 catboost_info/
 
 # Experiments directory (keep log only)
-experiments/exp_*/
+# experiments/exp_*/
 !experiments/experiment_log.csv
 
 # Submission files

@@ -1,0 +1,16 @@
+{
+  "model_type": "lightgbm",
+  "search_metric": "f1",
+  "selection_mode": "mean_minus_std_minus_gap",
+  "gap_lambda": 1.0,
+  "best_selection_score": 0.8388889611314422,
+  "best_metric_mean": 0.8954416933531203,
+  "best_metric_std": 0.02588418855813656,
+  "best_train_metric_mean": 0.9261102370166618,
+  "best_overfit_gap": 0.030668543663541548,
+  "best_params": {
+    "learning_rate": 0.03,
+    "max_depth": 5,
+    "num_leaves": 15
+  }
+}

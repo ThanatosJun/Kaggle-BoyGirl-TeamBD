@@ -131,6 +131,7 @@ class TextEmbeddingTransformer(BaseEstimator, TransformerMixin):
         self.pca_ = None
         self.pca_scaler_ = None
         self.torch_ = None
+        self.feature_names_out_ = None
 
     # ── Pickle 優化：不序列化 ~460MB 的模型權重 ──
     def __getstate__(self):
@@ -240,6 +241,8 @@ class TextEmbeddingTransformer(BaseEstimator, TransformerMixin):
             self.pca_ = PCA(n_components=self.pca_n_components)
             self.pca_.fit(scaled)
 
+        self.feature_names_out_ = self._build_feature_names_out()
+
         return self
 
     def _get_raw_embeddings(self, texts):
@@ -278,6 +281,75 @@ class TextEmbeddingTransformer(BaseEstimator, TransformerMixin):
             return result
 
         raise ValueError("必須啟用 Mini_LM、TF_IDF 或 use_both")
+
+    def _infer_minilm_dim(self):
+        model_cfg = getattr(self.model_, 'config', None)
+        hidden_size = getattr(model_cfg, 'hidden_size', None)
+        if hidden_size is not None:
+            return int(hidden_size)
+        try:
+            return int(self.embedding_dim)
+        except (TypeError, ValueError):
+            return 0
+
+    def _get_tfidf_feature_names(self):
+        if self.tfidf_vectorizer_ is None:
+            return []
+
+        try:
+            return [f"tfidf_{name}" for name in self.tfidf_vectorizer_.get_feature_names_out()]
+        except Exception:
+            vocab_size = len(getattr(self.tfidf_vectorizer_, 'vocabulary_', {}) or {})
+            if vocab_size <= 0:
+                try:
+                    vocab_size = int(self.tfidf_max_features)
+                except (TypeError, ValueError):
+                    vocab_size = 0
+            return [f"tfidf_{i:04d}" for i in range(vocab_size)]
+
+    def _build_feature_names_out(self):
+        # When PCA is enabled for embedding outputs, the transformed feature space is PCA dimensions only.
+        if self.use_pca and self.pca_ is not None and (self.Mini_LM or self.use_both):
+            n_components = int(getattr(self.pca_, 'n_components_', self.pca_n_components))
+            return np.asarray([f"text_pca_{i:03d}" for i in range(n_components)], dtype=object)
+
+        names = []
+
+        if self.use_both or self.TF_IDF:
+            names.extend(self._get_tfidf_feature_names())
+
+        if self.use_both or self.Mini_LM:
+            minilm_dim = self._infer_minilm_dim()
+            names.extend([f"minilm_{i:03d}" for i in range(minilm_dim)])
+
+        return np.asarray(names, dtype=object)
+
+    def get_feature_names_out(self, input_features=None):
+        if self.feature_names_out_ is not None:
+            return self.feature_names_out_
+
+        # Pre-fit fallback names to keep sklearn naming flow robust.
+        if self.use_pca and (self.Mini_LM or self.use_both):
+            try:
+                n_components = int(self.pca_n_components)
+            except (TypeError, ValueError):
+                n_components = 0
+            return np.asarray([f"text_pca_{i:03d}" for i in range(n_components)], dtype=object)
+
+        names = []
+
+        if self.use_both or self.TF_IDF:
+            try:
+                tfidf_dim = int(self.tfidf_max_features)
+            except (TypeError, ValueError):
+                tfidf_dim = 0
+            names.extend([f"tfidf_{i:04d}" for i in range(tfidf_dim)])
+
+        if self.use_both or self.Mini_LM:
+            minilm_dim = self._infer_minilm_dim()
+            names.extend([f"minilm_{i:03d}" for i in range(minilm_dim)])
+
+        return np.asarray(names, dtype=object)
 
     def apply_PCA(self, embeddings, n_components=None):
         """對嵌入向量應用 PCA 降維"""
@@ -322,6 +394,8 @@ class TextHandcraftedTransformer(BaseEstimator, TransformerMixin):
     _PUNCT = set('.,!?;:~-')
 
     def fit(self, X, y=None):
+        # Mark as fitted so sklearn Pipeline/check_is_fitted can validate transform calls.
+        self.is_fitted_ = True
         return self
 
     def transform(self, X, y=None):

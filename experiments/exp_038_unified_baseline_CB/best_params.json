@@ -1,0 +1,16 @@
+{
+  "model_type": "catboost",
+  "search_metric": "f1",
+  "selection_mode": "mean_minus_std_minus_gap",
+  "gap_lambda": 1.0,
+  "best_selection_score": 0.8444198349974802,
+  "best_metric_mean": 0.9303475725094577,
+  "best_metric_std": 0.02317894044848709,
+  "best_train_metric_mean": 0.993096369572948,
+  "best_overfit_gap": 0.06274879706349035,
+  "best_params": {
+    "depth": 8,
+    "l2_leaf_reg": 3,
+    "learning_rate": 0.03
+  }
+}

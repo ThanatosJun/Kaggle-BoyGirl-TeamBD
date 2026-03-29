@@ -1,0 +1,15 @@
+{
+  "model_type": "xgboost",
+  "search_metric": "f1",
+  "selection_mode": "mean_minus_std_minus_gap",
+  "gap_lambda": 1.0,
+  "best_selection_score": 0.8367995524520885,
+  "best_metric_mean": 0.9119658730594343,
+  "best_metric_std": 0.012148603827741826,
+  "best_train_metric_mean": 0.9749835898390383,
+  "best_overfit_gap": 0.063017716779604,
+  "best_params": {
+    "learning_rate": 0.03,
+    "max_depth": 8
+  }
+}

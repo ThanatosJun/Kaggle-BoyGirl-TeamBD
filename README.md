@@ -1,334 +1,264 @@
-# Boy or Girl 2026 - Kaggle Competition
+# Boy or Girl 2026 - Kaggle Competition (TeamBD)
 
-性別預測二元分類競賽專案（TeamBD）。本專案提供完整的機器學習 Pipeline，支援多種模型、自動化實驗管理、以及靈活的特徵工程策略。
+本專案為性別預測二元分類競賽實作，提供完整可重現的機器學習流程：
 
-## 🎯 專案特色
-
-- **多模型支援**: XGBoost、LightGBM、Random Forest、CatBoost
-- **自動實驗管理**: 每次訓練自動創建實驗資料夾，記錄所有配置與結果
-- **防止 Data Leakage**: 嚴格的 CV 流程，SMOTE 與特徵轉換都在 fold 內執行
-- **靈活配置**: 單一 YAML 檔案控制所有訓練參數
-- **完整評估**: 提供 Accuracy、F1、Precision、Recall 等多項指標
+- 多模型訓練：XGBoost、LightGBM、Random Forest、CatBoost
+- 模組化特徵工程：數值、類別、文本（TF-IDF / MiniLM / handcrafted）
+- 實驗追蹤：每次訓練自動保存 config、CV 指標、模型與特徵處理器
+- 批次實驗：Exp1 / Exp2 / Exp3 可獨立批次執行並輸出匯總表
 
 ---
 
-## 📁 專案結構
+## 1. 最新文件入口（建議先看）
 
-```
+### ALL 報告（主要決策依據）
+- [docs/EXPERIMENT_1_ALL.md](docs/EXPERIMENT_1_ALL.md)
+- [docs/EXPERIMENT_2_ALL.md](docs/EXPERIMENT_2_ALL.md)
+- [docs/EXPERIMENT_3_ALL.md](docs/EXPERIMENT_3_ALL.md)
+
+### 補充與比較
+- [docs/EXPERIMENT_1_SUMMARY.md](docs/EXPERIMENT_1_SUMMARY.md)
+- [docs/EXPERIMENT_2_SUMMARY.md](docs/EXPERIMENT_2_SUMMARY.md)
+- [docs/EXPERIMENT_3_COMPARISON.md](docs/EXPERIMENT_3_COMPARISON.md)
+- [docs/EXPERIMENT_COMPARIR.md](docs/EXPERIMENT_COMPARIR.md)
+
+---
+
+## 2. Method 對照（與 ALL 文件一致）
+
+### Exp1（補值策略）
+| 代碼 | 方法名稱 |
+|---|---|
+| method0 | Median |
+| method1 | Mean |
+| method2 | Paper Range Midpoint |
+| method3 | Cluster Mean |
+
+### Exp2（衍生特徵策略）
+| 代碼 | 方法名稱 |
+|---|---|
+| method0 | baseline |
+| method1 | weight ratio |
+| method2 | BMI |
+| method3 | PI |
+
+### Exp3（文本方法，報告內統一代碼）
+| 代碼 | 方法名稱 |
+|---|---|
+| method0 | minilm |
+| method1 | tfidf |
+| method2 | both |
+| method3 | handcrafted |
+
+註：Exp3 實際 config 檔名通常直接使用 tfidf/minilm/both/handcrafted，不一定直接以 method0~3 命名。
+
+---
+
+## 3. 專案結構
+
+```text
 Kaggle-BoyGirl-TeamBD/
 ├── configs/
-│   ├── default_config_all.yaml  # 🔧 統一訓練配置模板（建議從這裡複製）
-│   ├── default_config_exp3.yaml # Exp3 文本實驗模板
-│   └── exp1_*_method*.yaml      # Exp1 批次配置（4 模型 × 4 補值 = 16 份）
+│   ├── default_config_all.yaml
+│   ├── default_config_exp3.yaml
+│   ├── exp1_*_method*.yaml
+│   ├── exp2_*_method*.yaml
+│   ├── exp3_*.yaml
+│   └── old_config/
 ├── dataset/
-│   ├── train.csv                # 訓練資料
-│   └── test.csv                 # 測試資料
-├── src/                         # 📦 核心模組
-│   ├── data_loader.py           # 資料載入與清理
-│   ├── features.py              # 特徵工程 Pipeline
-│   ├── models.py                # 模型建立
-│   └── evaluate.py              # 交叉驗證與評估
-├── experiments/                 # 📊 實驗結果（自動產生）
-│   ├── experiment_log.csv       # 所有實驗的總記錄
-│   └── exp_XXX_name/            # 個別實驗資料夾
-├── result/                      # 📤 預測結果（自動產生）
-├── notebooks/                   # 📓 探索性分析 Notebooks
-├── main_train.py                # ▶️ 訓練主程式
-├── main_predict.py              # ▶️ 預測主程式
-├── batch_train_and_record.py    # ▶️ 批次訓練與指標彙整
-└── docs/
-    ├── experiment_guide.md      # 📖 實驗參數調整指南
-    ├── training_workflow_main.md # 訓練流程說明
-    └── start_train.md           # 快速開始指南
+│   ├── train.csv
+│   └── test.csv
+├── src/
+│   ├── data_loader.py
+│   ├── features.py
+│   ├── models.py
+│   ├── evaluate.py
+│   └── imputation_strategies.py
+├── experiments/
+│   ├── experiment_log.csv
+│   ├── experiment_record.csv
+│   ├── experiment_record_exp2.csv
+│   ├── experiment_record_exp3.csv
+│   └── exp_XXX_.../
+├── result/
+├── docs/
+├── notebooks/
+├── main_train.py
+├── main_predict.py
+├── exp1_batch_train_and_record.py
+├── exp2_batch_train_and_record.py
+├── exp3_batch_train_and_record.py
+├── training_workflow_main.md
+└── start_train.md
 ```
 
 ---
 
-## 🚀 快速開始
-
-### 1. 環境設置
+## 4. 環境安裝
 
 ```bash
-# 創建並啟動虛擬環境
 conda create -n boygirl311 python=3.11 -y
 conda activate boygirl311
-
-# 安裝依賴套件
 pip install -r requirements.txt
 ```
 
-建議使用 Python 3.11。實務上 Python 3.13 在部分 torch/transformers 組合下可能出現原生相容問題。
+建議使用 Python 3.11。
 
-### 2. 執行訓練
+---
+
+## 5. 單次訓練
+
+### 5.1 用單一 config 訓練
 
 ```bash
 python main_train.py --config configs/default_config_all.yaml
 ```
 
-訓練完成後會在 `experiments/` 目錄下自動創建實驗資料夾（如 `exp_001_baseline/`），包含：
-- 模型檔案（.pkl）
-- 配置檔案（config.yaml）
-- 交叉驗證結果（cv_results.json）
-- 實驗記錄會自動寫入 `experiments/experiment_log.csv`
-
-### 3. 執行預測
+或直接指定實驗 config：
 
 ```bash
-# 使用最新實驗的模型預測
-python main_predict.py
-
-# 使用指定實驗編號（例如實驗 2）
-python main_predict.py 2
-
-# 指定預測模式：full（整個訓練集訓練的單一模型）或 fold（5個折疊模型集成）
-python main_predict.py 2 full   # 使用 full 模式
-python main_predict.py 2 fold   # 使用 fold ensemble 模式
+python main_train.py --config configs/exp1_CB_method0.yaml
+python main_train.py --config configs/exp2_CB_method2.yaml
+python main_train.py --config configs/exp3_tfidf_exp1base.yaml
 ```
 
-預測結果會儲存在 `result/` 目錄下。
+訓練後會自動建立 `experiments/exp_XXX_.../`，包含：
 
-### 4. 批次訓練（16 組 Exp1）
+- `config.yaml`
+- `cv_results.json`
+- `model.pkl` / `preprocessor.pkl`
+- `fold_*_model.pkl` / `fold_*_preprocessor.pkl`
+
+---
+
+## 6. 預測
+
+### 6.1 指令用法
 
 ```bash
-# 批次執行 Exp1 的 16 份配置檔，並把結果寫入 experiments/experiment_record.csv
-python batch_train_and_record.py \
-  --config-glob "configs/exp1_*_method*.yaml" \
-  --output-csv experiments/experiment_record.csv
+# 最新實驗 + default mode
+python main_predict.py
 
-# 若希望遇到第一個錯誤就停止
-python batch_train_and_record.py \
-  --config-glob "configs/exp1_*_method*.yaml" \
-  --output-csv experiments/experiment_record.csv \
+# 指定實驗編號
+python main_predict.py 81
+
+# 指定模式
+python main_predict.py 81 full
+python main_predict.py 81 fold
+```
+
+輸出會寫到 `result/`，並同步更新 `result/prediction_stats_log.csv`。
+
+### 6.2 重要提醒
+
+`main_predict.py` 會先讀取 `configs/default_config.yaml`。
+若你的環境尚未有此檔，請先建立：
+
+```bash
+cp configs/default_config_all.yaml configs/default_config.yaml
+```
+
+---
+
+## 7. 批次訓練與匯總
+
+### 7.1 Exp1 批次（4 模型 x 4 補值）
+
+```bash
+python exp1_batch_train_and_record.py
+```
+
+預設輸出：`experiments/experiment_record.csv`
+
+### 7.2 Exp2 批次（4 模型 x 4 特徵法）
+
+```bash
+python exp2_batch_train_and_record.py
+```
+
+預設輸出：`experiments/experiment_record_exp2.csv`
+
+### 7.3 Exp3 批次（文本方法）
+
+```bash
+python exp3_batch_train_and_record.py
+```
+
+預設輸出：
+
+- `experiments/experiment_record_exp3.csv`
+- `experiments/experiment_record_exp3_latest_comparison.csv`
+
+### 7.4 進階參數（通用）
+
+三個批次腳本都支援：
+
+- `--config-glob`
+- `--output-csv`
+- `--main-script`
+- `--stop-on-error`
+
+範例：
+
+```bash
+python exp3_batch_train_and_record.py \
+  --config-glob "configs/exp3_*.yaml" \
+  --output-csv experiments/experiment_record_exp3.csv \
   --stop-on-error
 ```
 
-`experiment_record.csv` 會記錄每次實驗的 Mean Accuracy、Mean F1、Mean Precision、Mean Recall（含標準差）。
+---
 
-> 📖 **詳細說明**:
-> - 完整訓練流程: [training_workflow_main.md](docs/training_workflow_main.md)
-> - 參數調整指南: [experiment_guide.md](docs/experiment_guide.md)
-> - 啟動教學: [start_train.md](docs/start_train.md)
+## 8. 評估與實驗追蹤
+
+核心評估指標：
+
+- Accuracy
+- F1
+- Precision
+- Recall
+
+報告通常以 5-fold CV 的 `mean ± std` 呈現。
+
+常用檔案：
+
+- `experiments/experiment_log.csv`：主訓練歷史
+- `experiments/experiment_record*.csv`：批次匯總
+- `experiments/exp_XXX_.../cv_results.json`：單次詳情
 
 ---
 
-## 📦 核心模組說明
+## 9. Data Leakage 防範原則
 
-### `src/` 模組架構
+本專案流程遵守：
 
-專案採用模組化設計，每個檔案負責特定功能：
-
-| 檔案 | 功能 | 主要職責 |
-|------|------|----------|
-| **data_loader.py** | 資料載入與清理 | <ul><li>讀取 CSV 檔案</li><li>移除無用欄位（id, yt, self_intro）</li><li>標籤映射轉換（男=1, 女=0）</li><li>基礎資料型態轉換</li></ul> |
-| **features.py** | 特徵工程 Pipeline | <ul><li>數值特徵處理（補值、剪裁、標準化）</li><li>長尾特徵處理（log 轉換）</li><li>類別特徵處理（One-Hot Encoding）</li><li>有序特徵處理（保持數值順序）</li></ul> |
-| **models.py** | 模型建立 | <ul><li>支援 XGBoost / LightGBM / Random Forest / CatBoost</li><li>根據 config 自動初始化模型</li><li>參數覆寫與靈活配置</li></ul> |
-| **evaluate.py** | 交叉驗證與評估 | <ul><li>5-Fold Stratified Cross-Validation</li><li>防止 Data Leakage（SMOTE 在 fold 內執行）</li><li>計算評估指標（Accuracy, F1, Precision, Recall）</li><li>保存每個 fold 的模型與 preprocessor</li></ul> |
-
-### 資料處理流程
-
-```
-原始資料 (train.csv / test.csv)
-    ↓
-[data_loader.py] 資料載入與清理
-    ├── 移除無用欄位
-    ├── 標籤映射
-    └── 型態轉換
-    ↓
-[evaluate.py] 5-Fold 資料分割（僅訓練時）
-    ↓
-[features.py] 特徵工程 Pipeline（在每個 fold 內 fit）
-    ├── 數值特徵: 補值 → 剪裁 → 標準化
-    ├── 長尾特徵: 補值 → 移除負值 → log1p → 標準化
-    ├── 類別特徵: 補值 → One-Hot Encoding
-    └── 有序特徵: 補值 → 保留數值
-    ↓
-[evaluate.py] SMOTE 過採樣（可選，僅在訓練集上）
-    ↓
-[models.py] 模型訓練
-    ↓
-[evaluate.py] 模型評估與保存
-```
+1. 補值在 fold 內 fit/transform（非全資料先 fit）
+2. 特徵轉換參數由訓練 fold 決定
+3. SMOTE（若啟用）只在訓練 fold 執行
 
 ---
 
-## ⚙️ 配置檔案簡介
+## 10. 相關文件
 
-主要訓練參數建議定義在 `configs/default_config_all.yaml`。主要配置區塊：
-
-### 配置結構概覽
-
-```yaml
-experiment:
-  name: "baseline"                      # 實驗名稱（會加上編號）
-  description: "實驗描述"               # 建議詳細記錄改動內容
-
-data:
-  train_path: "dataset/train.csv"
-  test_path: "dataset/test.csv"
-  drop_cols: ["id", "yt", "self_intro"]
-  target_col: "gender"
-
-features:
-  numeric_cols: ["height", "weight", "iq"]              # 一般數值特徵
-  numeric_log_cols: ["fb_friends"]                      # 長尾分佈特徵（需 log 轉換）
-  categorical_cols: ["star_sign", "phone_os"]           # 無序類別特徵
-  ordinal_cols: ["sleepiness"]                          # 有序類別特徵（1-5）
-
-preprocessing:
-  imputation_mode: "new"                # new（類別用 -1）| old（類別用 most_frequent）
-  numeric_imputer_strategy: "median"    # 數值補值策略
-  clipping_lower_percentile: 1          # 數值剪裁下界（%）
-  clipping_upper_percentile: 99         # 數值剪裁上界（%）
-  scaler: "standard"                    # standard | minmax | robust | none
-
-model:
-  type: "xgboost"                       # xgboost | lightgbm | random_forest | catboost
-
-  # 模型參數（依據 type 選用）
-  xgb_params: {...}
-  lgbm_params: {...}
-  random_forest_params: {...}
-  catboost_params: {...}
-
-search:
-  enabled: false                        # 是否啟用自動網格搜尋
-  param_grid_mode: "quick"              # quick | full
-  metric: "f1"                          # 調參目標指標
-
-training:
-  n_splits: 5                           # 交叉驗證折數
-  use_smote: false                      # 是否使用 SMOTE 過採樣
-  class_weight: "balanced"              # null | balanced | {0: 1.5, 1: 1.0}
-  random_state: 42
-
-prediction:
-  default_mode: "full"                  # full | fold
-  output_dir: "result"
-```
-
-> 📖 **詳細參數調整指南**: [experiment_guide.md](docs/experiment_guide.md)
+- [docs/experiment_guide.md](docs/experiment_guide.md)
+- [docs/Experiment1_Imputation.md](docs/Experiment1_Imputation.md)
+- [docs/Experiment2_Features.md](docs/Experiment2_Features.md)
+- [docs/Experiment3_TextEmbedding.md](docs/Experiment3_TextEmbedding.md)
+- [docs/TF-IDF_Parameters_Guide.md](docs/TF-IDF_Parameters_Guide.md)
+- [training_workflow_main.md](training_workflow_main.md)
+- [training_workflow_simple.md](training_workflow_simple.md)
+- [start_train.md](start_train.md)
 
 ---
 
-## 📊 實驗管理
+## 11. 團隊建議工作流
 
-### 自動實驗追蹤
-
-每次執行 `python main_train.py` 時，系統會自動：
-
-1. **創建新的實驗資料夾**: `experiments/exp_XXX_name/`
-2. **保存完整配置**: 將當前的 `default_config_all.yaml` 複製到實驗資料夾
-3. **記錄所有模型**: 保存 full train 模型與每個 fold 的模型
-4. **寫入實驗日誌**: 自動更新 `experiments/experiment_log.csv`
-
-另外，`main_train.py` 會把 CV 指標與特徵重要度（可取得時）寫入各實驗資料夾中的 `cv_results.json`。
-
-### 實驗資料夾結構
-
-```
-experiments/
-├── experiment_log.csv          # 所有實驗的總記錄表
-├── experiment_record.csv       # 批次訓練匯總（由 batch_train_and_record.py 產生）
-└── exp_001_baseline/
-    ├── config.yaml             # 該次實驗的配置
-    ├── cv_results.json         # 交叉驗證詳細結果
-    ├── model.pkl               # Full train 模型
-    ├── preprocessor.pkl        # Full train 特徵處理器
-    ├── fold_0_model.pkl        # Fold 0 模型
-    ├── fold_0_preprocessor.pkl
-    ├── fold_1_model.pkl
-    └── ...
-```
-
-### 比較實驗結果
-
-```bash
-# 查看所有實驗結果
-cat experiments/experiment_log.csv
-```
-
-或使用 Python:
-```python
-import pandas as pd
-df = pd.read_csv('experiments/experiment_log.csv')
-print(df[['exp_id', 'name', 'mean_accuracy', 'mean_f1']].sort_values('mean_f1', ascending=False))
-```
+1. 先看對應的 ALL 文件確認 method 定義與目前基準。
+2. 每次只改一類變因（補值 / 衍生特徵 / 文本策略）。
+3. 執行批次腳本，更新 `experiment_record*.csv`。
+4. 以 CV 指標決策，不用 full-train 指標直接下結論。
+5. 寫回 docs 並同步更新 README（若 method 定義或流程有變更）。
 
 ---
 
-## 🔍 評估指標
-
-Cross-Validation 會輸出以下指標：
-- **Accuracy**: 整體準確率
-- **F1-Score**: 精確率與召回率的調和平均
-- **Precision**: 預測為正類中實際為正類的比例
-- **Recall**: 實際為正類中被正確預測的比例
-
-最終輸出為 **Mean ± Std**（5 個 fold 的平均值與標準差）
-
----
-
-## ⚠️ 重要注意事項
-
-### Data Leakage 防範
-
-本專案嚴格遵守以下原則，防止資料洩漏：
-
-1. **補值（Imputation）在 CV fold 內執行**
-   - ✅ 正確：在每個 fold 的訓練集上 fit，驗證集上 transform
-   - ❌ 錯誤：在整個 dataset 上先 fit imputer
-
-2. **SMOTE 過採樣在 CV fold 內執行**
-   - ✅ 正確：僅在訓練 fold 執行 SMOTE，驗證 fold 保持原始分佈
-   - ❌ 錯誤：在切分前對整個數據執行 SMOTE
-
-3. **特徵轉換參數由訓練集決定**
-   - ✅ 正確：`preprocessor.fit_transform(X_train)` + `preprocessor.transform(X_val)`
-   - ❌ 錯誤：分別在 train 和 validation 上 fit_transform
-
-### 最佳實踐建議
-
-- **實驗命名規範**: 使用有意義的名稱（例如：baseline, no_smote, tuned_lgbm, add_interaction_features）
-- **記錄實驗筆記**: 在 config 的 `description` 中詳細說明實驗目的與改動內容
-- **控制變因**: 每次實驗只改變一個變量，方便分析影響
-- **保留實驗記錄**: `experiment_log.csv` 應提交到 Git，方便團隊協作與追蹤
-- **定期清理**: 實驗資料夾會佔用空間，表現不佳的可刪除（但保留在 log 中的記錄）
-
----
-
-## 🐛 常見問題
-
-### RuntimeWarning: invalid value encountered in log1p
-**原因**: `fb_friends` 包含負值（如 -1000）
-**解決**: 已在 `src/features.py` 的 `log_pipeline` 中加入 `clip_min` 步驟
-
-### ValueError: Input X contains NaN (SMOTE)
-**原因**: 特徵轉換後仍有 NaN 殘留
-**解決**: 確認所有 Pipeline 都有 Imputer，且順序正確（Imputation → Transformation）
-
-### 預測結果與預期不符
-**原因**: 未訓練模型或實驗資料夾缺少模型檔案
-**解決**: 先執行 `python main_train.py` 再執行預測
-
----
-
-## 📚 相關文件
-
-| 文件 | 說明 |
-|------|------|
-| [experiment_guide.md](docs/experiment_guide.md) | 📖 **參數調整與實驗指南**（如何調整 default_config_all.yaml） |
-| [training_workflow_main.md](docs/training_workflow_main.md) | 完整訓練流程說明 |
-| [start_train.md](docs/start_train.md) | 快速開始教學 |
-
----
-
-## 📞 競賽資訊
-
-- **競賽**: Boy or Girl 2026 NEW | Kaggle
-- **團隊**: TeamBD
-- **Repository**: [Kaggle-BoyGirl-TeamBD](https://github.com/your-repo-link)
-
----
-
-**祝訓練順利！🚀**
-
+如需我協助把 README 再拆成「快速版（1頁）」與「完整版（本文件）」，可以直接告訴我要保留哪些章節。

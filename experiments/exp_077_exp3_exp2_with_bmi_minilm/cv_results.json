@@ -1,0 +1,1673 @@
+{
+  "mean_accuracy": 0.8724369747899159,
+  "std_accuracy": 0.032471547058778916,
+  "mean_f1": 0.9166572014957645,
+  "std_f1": 0.02144536715060308,
+  "mean_precision": 0.8945549299983014,
+  "std_precision": 0.016660005338674972,
+  "mean_recall": 0.9400297619047618,
+  "std_recall": 0.028491572982911356,
+  "fold_results": {
+    "accuracy": [
+      0.8705882352941177,
+      0.8941176470588236,
+      0.8117647058823529,
+      0.8809523809523809,
+      0.9047619047619048
+    ],
+    "f1": [
+      0.9147286821705426,
+      0.9312977099236641,
+      0.8769230769230769,
+      0.921875,
+      0.9384615384615385
+    ],
+    "precision": [
+      0.8939393939393939,
+      0.8970588235294118,
+      0.8636363636363636,
+      0.9076923076923077,
+      0.9104477611940298
+    ],
+    "recall": [
+      0.9365079365079365,
+      0.9682539682539683,
+      0.890625,
+      0.9365079365079365,
+      0.9682539682539683
+    ]
+  },
+  "full_train_accuracy": 1.0,
+  "full_train_f1": 1.0,
+  "full_train_precision": 1.0,
+  "full_train_recall": 1.0,
+  "full_train_metric_scope": "train_set_only_no_validation",
+  "feature_importance": {
+    "cv_summary": [
+      {
+        "feature": "num__height",
+        "cv_mean_importance_norm": 0.2648927292832982
+      },
+      {
+        "feature": "num__weight",
+        "cv_mean_importance_norm": 0.10963006063029956
+      },
+      {
+        "feature": "num__bmi",
+        "cv_mean_importance_norm": 0.036552969637498496
+      },
+      {
+        "feature": "log__fb_friends",
+        "cv_mean_importance_norm": 0.027253462078717445
+      },
+      {
+        "feature": "num__iq",
+        "cv_mean_importance_norm": 0.017014254196275603
+      },
+      {
+        "feature": "ord__sleepiness",
+        "cv_mean_importance_norm": 0.01004065360337517
+      },
+      {
+        "feature": "cat__star_sign_雙子座",
+        "cv_mean_importance_norm": 0.0068686002363918
+      },
+      {
+        "feature": "cat__phone_os_Android",
+        "cv_mean_importance_norm": 0.006303443552697144
+      },
+      {
+        "feature": "text__minilm_222",
+        "cv_mean_importance_norm": 0.005043490087870985
+      },
+      {
+        "feature": "text__minilm_003",
+        "cv_mean_importance_norm": 0.004635922426593159
+      },
+      {
+        "feature": "text__minilm_284",
+        "cv_mean_importance_norm": 0.004513908643423251
+      },
+      {
+        "feature": "text__minilm_043",
+        "cv_mean_importance_norm": 0.004356888193627473
+      },
+      {
+        "feature": "text__minilm_293",
+        "cv_mean_importance_norm": 0.0043343386319336565
+      },
+      {
+        "feature": "cat__phone_os_Apple",
+        "cv_mean_importance_norm": 0.004266108086674112
+      },
+      {
+        "feature": "text__minilm_267",
+        "cv_mean_importance_norm": 0.003906476691276138
+      },
+      {
+        "feature": "text__minilm_027",
+        "cv_mean_importance_norm": 0.0038858914129951986
+      },
+      {
+        "feature": "text__minilm_168",
+        "cv_mean_importance_norm": 0.003729225997900242
+      },
+      {
+        "feature": "text__minilm_261",
+        "cv_mean_importance_norm": 0.0037146429399434995
+      },
+      {
+        "feature": "text__minilm_213",
+        "cv_mean_importance_norm": 0.003643396296796341
+      },
+      {
+        "feature": "text__minilm_131",
+        "cv_mean_importance_norm": 0.003572297392553192
+      },
+      {
+        "feature": "text__minilm_085",
+        "cv_mean_importance_norm": 0.00354280538497201
+      },
+      {
+        "feature": "text__minilm_053",
+        "cv_mean_importance_norm": 0.0034758327058262714
+      },
+      {
+        "feature": "text__minilm_335",
+        "cv_mean_importance_norm": 0.003384664900402949
+      },
+      {
+        "feature": "text__minilm_322",
+        "cv_mean_importance_norm": 0.003339560699594414
+      },
+      {
+        "feature": "text__minilm_319",
+        "cv_mean_importance_norm": 0.003337041422167949
+      },
+      {
+        "feature": "text__minilm_230",
+        "cv_mean_importance_norm": 0.003242580814600264
+      },
+      {
+        "feature": "text__minilm_351",
+        "cv_mean_importance_norm": 0.003211911748191289
+      },
+      {
+        "feature": "text__minilm_071",
+        "cv_mean_importance_norm": 0.0031680332757565884
+      },
+      {
+        "feature": "text__minilm_066",
+        "cv_mean_importance_norm": 0.0030935348724268003
+      },
+      {
+        "feature": "text__minilm_332",
+        "cv_mean_importance_norm": 0.0030934754807173085
+      },
+      {
+        "feature": "text__minilm_076",
+        "cv_mean_importance_norm": 0.0030535896509963217
+      },
+      {
+        "feature": "text__minilm_089",
+        "cv_mean_importance_norm": 0.003050131152962413
+      },
+      {
+        "feature": "text__minilm_013",
+        "cv_mean_importance_norm": 0.0030137185923005713
+      },
+      {
+        "feature": "text__minilm_061",
+        "cv_mean_importance_norm": 0.002990052535726868
+      },
+      {
+        "feature": "text__minilm_102",
+        "cv_mean_importance_norm": 0.002926854996150114
+      },
+      {
+        "feature": "text__minilm_107",
+        "cv_mean_importance_norm": 0.0029123416994678254
+      },
+      {
+        "feature": "text__minilm_128",
+        "cv_mean_importance_norm": 0.0028193745275238804
+      },
+      {
+        "feature": "text__minilm_074",
+        "cv_mean_importance_norm": 0.002795740033142891
+      },
+      {
+        "feature": "text__minilm_021",
+        "cv_mean_importance_norm": 0.0027957276168125923
+      },
+      {
+        "feature": "text__minilm_100",
+        "cv_mean_importance_norm": 0.0027676029953062446
+      },
+      {
+        "feature": "text__minilm_035",
+        "cv_mean_importance_norm": 0.002726147871831989
+      },
+      {
+        "feature": "text__minilm_067",
+        "cv_mean_importance_norm": 0.0027243727677421442
+      },
+      {
+        "feature": "text__minilm_125",
+        "cv_mean_importance_norm": 0.0026805916133504208
+      },
+      {
+        "feature": "text__minilm_256",
+        "cv_mean_importance_norm": 0.0026769632001900734
+      },
+      {
+        "feature": "text__minilm_278",
+        "cv_mean_importance_norm": 0.002633163208054386
+      },
+      {
+        "feature": "text__minilm_369",
+        "cv_mean_importance_norm": 0.0026096235959681947
+      },
+      {
+        "feature": "text__minilm_239",
+        "cv_mean_importance_norm": 0.002607987310649492
+      },
+      {
+        "feature": "text__minilm_090",
+        "cv_mean_importance_norm": 0.0025723411510370216
+      },
+      {
+        "feature": "text__minilm_144",
+        "cv_mean_importance_norm": 0.0025579404059098186
+      },
+      {
+        "feature": "text__minilm_093",
+        "cv_mean_importance_norm": 0.0024442197242084606
+      },
+      {
+        "feature": "text__minilm_147",
+        "cv_mean_importance_norm": 0.002435772892900239
+      },
+      {
+        "feature": "text__minilm_280",
+        "cv_mean_importance_norm": 0.002433236861706897
+      },
+      {
+        "feature": "text__minilm_202",
+        "cv_mean_importance_norm": 0.002404410708867177
+      },
+      {
+        "feature": "text__minilm_263",
+        "cv_mean_importance_norm": 0.0024022403277504665
+      },
+      {
+        "feature": "text__minilm_245",
+        "cv_mean_importance_norm": 0.002394202688237609
+      },
+      {
+        "feature": "text__minilm_277",
+        "cv_mean_importance_norm": 0.002369233198269506
+      },
+      {
+        "feature": "text__minilm_019",
+        "cv_mean_importance_norm": 0.0023615081683338295
+      },
+      {
+        "feature": "text__minilm_347",
+        "cv_mean_importance_norm": 0.002320937632797505
+      },
+      {
+        "feature": "text__minilm_286",
+        "cv_mean_importance_norm": 0.002311234084625587
+      },
+      {
+        "feature": "text__minilm_117",
+        "cv_mean_importance_norm": 0.00231025171528726
+      },
+      {
+        "feature": "text__minilm_012",
+        "cv_mean_importance_norm": 0.002308084422631898
+      },
+      {
+        "feature": "text__minilm_031",
+        "cv_mean_importance_norm": 0.002281693368497218
+      },
+      {
+        "feature": "text__minilm_164",
+        "cv_mean_importance_norm": 0.0022794091709989646
+      },
+      {
+        "feature": "text__minilm_030",
+        "cv_mean_importance_norm": 0.0022701118986697315
+      },
+      {
+        "feature": "text__minilm_146",
+        "cv_mean_importance_norm": 0.0022431802475088285
+      },
+      {
+        "feature": "text__minilm_198",
+        "cv_mean_importance_norm": 0.0022423722289362583
+      },
+      {
+        "feature": "text__minilm_157",
+        "cv_mean_importance_norm": 0.002234420400172296
+      },
+      {
+        "feature": "text__minilm_004",
+        "cv_mean_importance_norm": 0.0022274923170388893
+      },
+      {
+        "feature": "text__minilm_126",
+        "cv_mean_importance_norm": 0.0022254540937158627
+      },
+      {
+        "feature": "text__minilm_175",
+        "cv_mean_importance_norm": 0.0022082845118286867
+      },
+      {
+        "feature": "text__minilm_208",
+        "cv_mean_importance_norm": 0.0022069808959911197
+      },
+      {
+        "feature": "text__minilm_088",
+        "cv_mean_importance_norm": 0.002198782961555697
+      },
+      {
+        "feature": "text__minilm_015",
+        "cv_mean_importance_norm": 0.0021912793746093956
+      },
+      {
+        "feature": "text__minilm_283",
+        "cv_mean_importance_norm": 0.002181585605513621
+      },
+      {
+        "feature": "text__minilm_307",
+        "cv_mean_importance_norm": 0.002175891873423283
+      },
+      {
+        "feature": "text__minilm_248",
+        "cv_mean_importance_norm": 0.002163708631850174
+      },
+      {
+        "feature": "text__minilm_195",
+        "cv_mean_importance_norm": 0.0021551310728902258
+      },
+      {
+        "feature": "text__minilm_228",
+        "cv_mean_importance_norm": 0.0020918406790270466
+      },
+      {
+        "feature": "text__minilm_254",
+        "cv_mean_importance_norm": 0.002089622068710275
+      },
+      {
+        "feature": "text__minilm_148",
+        "cv_mean_importance_norm": 0.0020784185445064185
+      },
+      {
+        "feature": "text__minilm_132",
+        "cv_mean_importance_norm": 0.0020679669218367706
+      },
+      {
+        "feature": "text__minilm_301",
+        "cv_mean_importance_norm": 0.002046917685483998
+      },
+      {
+        "feature": "text__minilm_196",
+        "cv_mean_importance_norm": 0.002039304946596883
+      },
+      {
+        "feature": "text__minilm_303",
+        "cv_mean_importance_norm": 0.0020303782660044123
+      },
+      {
+        "feature": "text__minilm_314",
+        "cv_mean_importance_norm": 0.002026229803479051
+      },
+      {
+        "feature": "text__minilm_143",
+        "cv_mean_importance_norm": 0.0019958371537307684
+      },
+      {
+        "feature": "text__minilm_366",
+        "cv_mean_importance_norm": 0.0019757078092867155
+      },
+      {
+        "feature": "text__minilm_158",
+        "cv_mean_importance_norm": 0.001957672882167315
+      },
+      {
+        "feature": "text__minilm_203",
+        "cv_mean_importance_norm": 0.0019509663333137992
+      },
+      {
+        "feature": "text__minilm_063",
+        "cv_mean_importance_norm": 0.0019416730863023603
+      },
+      {
+        "feature": "text__minilm_300",
+        "cv_mean_importance_norm": 0.0019350703503458917
+      },
+      {
+        "feature": "text__minilm_240",
+        "cv_mean_importance_norm": 0.0019314073198718601
+      },
+      {
+        "feature": "text__minilm_221",
+        "cv_mean_importance_norm": 0.001929527538579946
+      },
+      {
+        "feature": "text__minilm_269",
+        "cv_mean_importance_norm": 0.001914681205989948
+      },
+      {
+        "feature": "text__minilm_070",
+        "cv_mean_importance_norm": 0.0019108326004956648
+      },
+      {
+        "feature": "text__minilm_001",
+        "cv_mean_importance_norm": 0.0018844002247324677
+      },
+      {
+        "feature": "text__minilm_141",
+        "cv_mean_importance_norm": 0.0018788090070309357
+      },
+      {
+        "feature": "text__minilm_311",
+        "cv_mean_importance_norm": 0.0018672689861180883
+      },
+      {
+        "feature": "text__minilm_355",
+        "cv_mean_importance_norm": 0.0018566756536326427
+      },
+      {
+        "feature": "text__minilm_324",
+        "cv_mean_importance_norm": 0.0018540148559987514
+      },
+      {
+        "feature": "text__minilm_108",
+        "cv_mean_importance_norm": 0.0018465154026191949
+      },
+      {
+        "feature": "text__minilm_184",
+        "cv_mean_importance_norm": 0.0018435287070525184
+      },
+      {
+        "feature": "text__minilm_115",
+        "cv_mean_importance_norm": 0.0018357587253061357
+      },
+      {
+        "feature": "text__minilm_048",
+        "cv_mean_importance_norm": 0.0018346901007187868
+      },
+      {
+        "feature": "text__minilm_022",
+        "cv_mean_importance_norm": 0.001829666883224101
+      },
+      {
+        "feature": "text__minilm_224",
+        "cv_mean_importance_norm": 0.0017725149211999382
+      },
+      {
+        "feature": "text__minilm_207",
+        "cv_mean_importance_norm": 0.0017716369785163
+      },
+      {
+        "feature": "text__minilm_373",
+        "cv_mean_importance_norm": 0.0017695325552387457
+      },
+      {
+        "feature": "text__minilm_129",
+        "cv_mean_importance_norm": 0.0017572178333910046
+      },
+      {
+        "feature": "text__minilm_114",
+        "cv_mean_importance_norm": 0.001753408080632907
+      },
+      {
+        "feature": "text__minilm_097",
+        "cv_mean_importance_norm": 0.0017496974879906819
+      },
+      {
+        "feature": "text__minilm_166",
+        "cv_mean_importance_norm": 0.0017392568137993582
+      },
+      {
+        "feature": "text__minilm_320",
+        "cv_mean_importance_norm": 0.001738363439718401
+      },
+      {
+        "feature": "text__minilm_363",
+        "cv_mean_importance_norm": 0.0017153141785304215
+      },
+      {
+        "feature": "text__minilm_078",
+        "cv_mean_importance_norm": 0.0017080997621558298
+      },
+      {
+        "feature": "text__minilm_204",
+        "cv_mean_importance_norm": 0.0016941472159367123
+      },
+      {
+        "feature": "text__minilm_258",
+        "cv_mean_importance_norm": 0.00168759440689196
+      },
+      {
+        "feature": "text__minilm_178",
+        "cv_mean_importance_norm": 0.0016818673409258983
+      },
+      {
+        "feature": "text__minilm_362",
+        "cv_mean_importance_norm": 0.0016753188484450073
+      },
+      {
+        "feature": "text__minilm_211",
+        "cv_mean_importance_norm": 0.0016563091885730586
+      },
+      {
+        "feature": "text__minilm_271",
+        "cv_mean_importance_norm": 0.0016500315399931523
+      },
+      {
+        "feature": "text__minilm_345",
+        "cv_mean_importance_norm": 0.0016437399586933861
+      },
+      {
+        "feature": "text__minilm_087",
+        "cv_mean_importance_norm": 0.001639361875604077
+      },
+      {
+        "feature": "text__minilm_140",
+        "cv_mean_importance_norm": 0.0016145835621539089
+      },
+      {
+        "feature": "text__minilm_282",
+        "cv_mean_importance_norm": 0.0016135346011588545
+      },
+      {
+        "feature": "text__minilm_308",
+        "cv_mean_importance_norm": 0.0016102691144500453
+      },
+      {
+        "feature": "text__minilm_104",
+        "cv_mean_importance_norm": 0.0016066827130069724
+      },
+      {
+        "feature": "text__minilm_179",
+        "cv_mean_importance_norm": 0.0015988084174166147
+      },
+      {
+        "feature": "text__minilm_197",
+        "cv_mean_importance_norm": 0.0015910058871689582
+      },
+      {
+        "feature": "text__minilm_099",
+        "cv_mean_importance_norm": 0.0015896767065767324
+      },
+      {
+        "feature": "text__minilm_217",
+        "cv_mean_importance_norm": 0.0015861809974897407
+      },
+      {
+        "feature": "text__minilm_112",
+        "cv_mean_importance_norm": 0.001583397290922822
+      },
+      {
+        "feature": "text__minilm_206",
+        "cv_mean_importance_norm": 0.0015783157041555165
+      },
+      {
+        "feature": "text__minilm_352",
+        "cv_mean_importance_norm": 0.0015704707345203747
+      },
+      {
+        "feature": "text__minilm_360",
+        "cv_mean_importance_norm": 0.0015611414006424201
+      },
+      {
+        "feature": "text__minilm_229",
+        "cv_mean_importance_norm": 0.0015599553586157463
+      },
+      {
+        "feature": "text__minilm_337",
+        "cv_mean_importance_norm": 0.001554662153410876
+      },
+      {
+        "feature": "text__minilm_296",
+        "cv_mean_importance_norm": 0.001545237762907746
+      },
+      {
+        "feature": "text__minilm_025",
+        "cv_mean_importance_norm": 0.0015313327794415764
+      },
+      {
+        "feature": "text__minilm_098",
+        "cv_mean_importance_norm": 0.0015180796220654546
+      },
+      {
+        "feature": "text__minilm_133",
+        "cv_mean_importance_norm": 0.0014969689715178627
+      },
+      {
+        "feature": "text__minilm_040",
+        "cv_mean_importance_norm": 0.001496361682637335
+      },
+      {
+        "feature": "text__minilm_145",
+        "cv_mean_importance_norm": 0.0014949280862788994
+      },
+      {
+        "feature": "text__minilm_017",
+        "cv_mean_importance_norm": 0.0014797369271667819
+      },
+      {
+        "feature": "text__minilm_210",
+        "cv_mean_importance_norm": 0.0014766816761526938
+      },
+      {
+        "feature": "text__minilm_036",
+        "cv_mean_importance_norm": 0.001473286183142007
+      },
+      {
+        "feature": "text__minilm_082",
+        "cv_mean_importance_norm": 0.0014688312221514774
+      },
+      {
+        "feature": "text__minilm_340",
+        "cv_mean_importance_norm": 0.0014600238871130338
+      },
+      {
+        "feature": "text__minilm_142",
+        "cv_mean_importance_norm": 0.0014423574258168987
+      },
+      {
+        "feature": "text__minilm_009",
+        "cv_mean_importance_norm": 0.0014326821801311374
+      },
+      {
+        "feature": "text__minilm_149",
+        "cv_mean_importance_norm": 0.001425231574775377
+      },
+      {
+        "feature": "text__minilm_234",
+        "cv_mean_importance_norm": 0.001422195984497591
+      },
+      {
+        "feature": "text__minilm_189",
+        "cv_mean_importance_norm": 0.0014177527391808532
+      },
+      {
+        "feature": "text__minilm_034",
+        "cv_mean_importance_norm": 0.0014066353181175113
+      },
+      {
+        "feature": "text__minilm_042",
+        "cv_mean_importance_norm": 0.0014024859915968218
+      },
+      {
+        "feature": "text__minilm_304",
+        "cv_mean_importance_norm": 0.0013866712416822434
+      },
+      {
+        "feature": "text__minilm_328",
+        "cv_mean_importance_norm": 0.0013850086605672793
+      },
+      {
+        "feature": "text__minilm_348",
+        "cv_mean_importance_norm": 0.001380438515676663
+      },
+      {
+        "feature": "text__minilm_242",
+        "cv_mean_importance_norm": 0.0013762637041300017
+      },
+      {
+        "feature": "text__minilm_250",
+        "cv_mean_importance_norm": 0.001373283842438428
+      },
+      {
+        "feature": "text__minilm_060",
+        "cv_mean_importance_norm": 0.0013727777461333209
+      },
+      {
+        "feature": "text__minilm_154",
+        "cv_mean_importance_norm": 0.0013675777210097918
+      },
+      {
+        "feature": "text__minilm_265",
+        "cv_mean_importance_norm": 0.0013522745569818338
+      },
+      {
+        "feature": "text__minilm_062",
+        "cv_mean_importance_norm": 0.0013457507499013768
+      },
+      {
+        "feature": "text__minilm_072",
+        "cv_mean_importance_norm": 0.0013457216812361005
+      },
+      {
+        "feature": "text__minilm_139",
+        "cv_mean_importance_norm": 0.001340604796933683
+      },
+      {
+        "feature": "text__minilm_083",
+        "cv_mean_importance_norm": 0.0013367002958339699
+      },
+      {
+        "feature": "text__minilm_281",
+        "cv_mean_importance_norm": 0.0013338218250419699
+      },
+      {
+        "feature": "text__minilm_357",
+        "cv_mean_importance_norm": 0.0013287827061112868
+      },
+      {
+        "feature": "text__minilm_122",
+        "cv_mean_importance_norm": 0.0013245414471161209
+      },
+      {
+        "feature": "text__minilm_081",
+        "cv_mean_importance_norm": 0.0013216505729897654
+      },
+      {
+        "feature": "text__minilm_292",
+        "cv_mean_importance_norm": 0.0013093537969610797
+      },
+      {
+        "feature": "text__minilm_023",
+        "cv_mean_importance_norm": 0.0013028297654926507
+      },
+      {
+        "feature": "text__minilm_330",
+        "cv_mean_importance_norm": 0.0012882463324248167
+      },
+      {
+        "feature": "text__minilm_050",
+        "cv_mean_importance_norm": 0.0012805596959547369
+      },
+      {
+        "feature": "text__minilm_358",
+        "cv_mean_importance_norm": 0.0012779133293166483
+      },
+      {
+        "feature": "text__minilm_080",
+        "cv_mean_importance_norm": 0.0012605836849878147
+      },
+      {
+        "feature": "text__minilm_215",
+        "cv_mean_importance_norm": 0.0012587165491248034
+      },
+      {
+        "feature": "text__minilm_214",
+        "cv_mean_importance_norm": 0.0012582356803220414
+      },
+      {
+        "feature": "text__minilm_327",
+        "cv_mean_importance_norm": 0.0012496657409326668
+      },
+      {
+        "feature": "text__minilm_192",
+        "cv_mean_importance_norm": 0.001240905162680003
+      },
+      {
+        "feature": "text__minilm_325",
+        "cv_mean_importance_norm": 0.0012407948495509109
+      },
+      {
+        "feature": "text__minilm_264",
+        "cv_mean_importance_norm": 0.0012372034010510863
+      },
+      {
+        "feature": "text__minilm_047",
+        "cv_mean_importance_norm": 0.0012357967509068308
+      },
+      {
+        "feature": "text__minilm_251",
+        "cv_mean_importance_norm": 0.001229614159755118
+      },
+      {
+        "feature": "text__minilm_167",
+        "cv_mean_importance_norm": 0.0012260544786843446
+      },
+      {
+        "feature": "text__minilm_055",
+        "cv_mean_importance_norm": 0.0012199508904960164
+      },
+      {
+        "feature": "text__minilm_079",
+        "cv_mean_importance_norm": 0.001218284801300466
+      },
+      {
+        "feature": "text__minilm_371",
+        "cv_mean_importance_norm": 0.0012133310826153859
+      },
+      {
+        "feature": "text__minilm_172",
+        "cv_mean_importance_norm": 0.0012042820678764693
+      },
+      {
+        "feature": "cat__star_sign_處女座",
+        "cv_mean_importance_norm": 0.0012021707743901644
+      },
+      {
+        "feature": "text__minilm_032",
+        "cv_mean_importance_norm": 0.0012016016276358559
+      },
+      {
+        "feature": "text__minilm_266",
+        "cv_mean_importance_norm": 0.0011952947440819592
+      },
+      {
+        "feature": "text__minilm_000",
+        "cv_mean_importance_norm": 0.0011933663174705255
+      },
+      {
+        "feature": "text__minilm_370",
+        "cv_mean_importance_norm": 0.0011819588426786759
+      },
+      {
+        "feature": "text__minilm_111",
+        "cv_mean_importance_norm": 0.0011808665376906804
+      },
+      {
+        "feature": "text__minilm_135",
+        "cv_mean_importance_norm": 0.0011750836923750095
+      },
+      {
+        "feature": "text__minilm_236",
+        "cv_mean_importance_norm": 0.0011643092056364281
+      },
+      {
+        "feature": "text__minilm_163",
+        "cv_mean_importance_norm": 0.0011554049770236682
+      },
+      {
+        "feature": "text__minilm_049",
+        "cv_mean_importance_norm": 0.0011506424973183479
+      },
+      {
+        "feature": "text__minilm_309",
+        "cv_mean_importance_norm": 0.0011432932737696921
+      },
+      {
+        "feature": "text__minilm_051",
+        "cv_mean_importance_norm": 0.001141856011403626
+      },
+      {
+        "feature": "text__minilm_018",
+        "cv_mean_importance_norm": 0.0011368135896438016
+      },
+      {
+        "feature": "text__minilm_334",
+        "cv_mean_importance_norm": 0.0011185644563178284
+      },
+      {
+        "feature": "text__minilm_162",
+        "cv_mean_importance_norm": 0.0011138941980856428
+      },
+      {
+        "feature": "text__minilm_299",
+        "cv_mean_importance_norm": 0.0011133296201244801
+      },
+      {
+        "feature": "text__minilm_006",
+        "cv_mean_importance_norm": 0.0011034602602816009
+      },
+      {
+        "feature": "text__minilm_170",
+        "cv_mean_importance_norm": 0.0010943136207949907
+      },
+      {
+        "feature": "text__minilm_223",
+        "cv_mean_importance_norm": 0.0010938300152840777
+      },
+      {
+        "feature": "text__minilm_212",
+        "cv_mean_importance_norm": 0.0010820977542414802
+      },
+      {
+        "feature": "text__minilm_233",
+        "cv_mean_importance_norm": 0.0010729847541077978
+      },
+      {
+        "feature": "text__minilm_123",
+        "cv_mean_importance_norm": 0.001060014676871868
+      },
+      {
+        "feature": "text__minilm_124",
+        "cv_mean_importance_norm": 0.001059276628128791
+      },
+      {
+        "feature": "text__minilm_375",
+        "cv_mean_importance_norm": 0.0010534965222156706
+      },
+      {
+        "feature": "text__minilm_377",
+        "cv_mean_importance_norm": 0.0010523819981008325
+      },
+      {
+        "feature": "text__minilm_011",
+        "cv_mean_importance_norm": 0.0010461385910786323
+      },
+      {
+        "feature": "text__minilm_381",
+        "cv_mean_importance_norm": 0.0010460023503473376
+      },
+      {
+        "feature": "text__minilm_016",
+        "cv_mean_importance_norm": 0.001045021462209328
+      },
+      {
+        "feature": "text__minilm_262",
+        "cv_mean_importance_norm": 0.0010431770137053467
+      },
+      {
+        "feature": "text__minilm_193",
+        "cv_mean_importance_norm": 0.0010266433257788885
+      },
+      {
+        "feature": "text__minilm_346",
+        "cv_mean_importance_norm": 0.0010185917235943146
+      },
+      {
+        "feature": "text__minilm_171",
+        "cv_mean_importance_norm": 0.0010112959000385508
+      },
+      {
+        "feature": "text__minilm_252",
+        "cv_mean_importance_norm": 0.001004930447730462
+      },
+      {
+        "feature": "text__minilm_272",
+        "cv_mean_importance_norm": 0.0009931302415179387
+      },
+      {
+        "feature": "text__minilm_057",
+        "cv_mean_importance_norm": 0.0009855375217532347
+      },
+      {
+        "feature": "text__minilm_382",
+        "cv_mean_importance_norm": 0.0009808787873358776
+      },
+      {
+        "feature": "text__minilm_339",
+        "cv_mean_importance_norm": 0.0009786391268971832
+      },
+      {
+        "feature": "text__minilm_059",
+        "cv_mean_importance_norm": 0.0009752119137548823
+      },
+      {
+        "feature": "text__minilm_380",
+        "cv_mean_importance_norm": 0.0009655369353392219
+      },
+      {
+        "feature": "text__minilm_225",
+        "cv_mean_importance_norm": 0.0009624720760963308
+      },
+      {
+        "feature": "text__minilm_113",
+        "cv_mean_importance_norm": 0.0009621142553689635
+      },
+      {
+        "feature": "cat__star_sign_水瓶座",
+        "cv_mean_importance_norm": 0.000955119969431786
+      },
+      {
+        "feature": "text__minilm_180",
+        "cv_mean_importance_norm": 0.0009545453622847626
+      },
+      {
+        "feature": "text__minilm_188",
+        "cv_mean_importance_norm": 0.0009471165997657291
+      },
+      {
+        "feature": "text__minilm_247",
+        "cv_mean_importance_norm": 0.0009427472810874125
+      },
+      {
+        "feature": "text__minilm_378",
+        "cv_mean_importance_norm": 0.0009394882317489568
+      },
+      {
+        "feature": "cat__star_sign_牡羊座",
+        "cv_mean_importance_norm": 0.0009392990194216997
+      },
+      {
+        "feature": "text__minilm_058",
+        "cv_mean_importance_norm": 0.0009361122039548331
+      },
+      {
+        "feature": "text__minilm_134",
+        "cv_mean_importance_norm": 0.0009240810810387552
+      },
+      {
+        "feature": "text__minilm_255",
+        "cv_mean_importance_norm": 0.0009215858753199993
+      },
+      {
+        "feature": "text__minilm_312",
+        "cv_mean_importance_norm": 0.0009160440807439638
+      },
+      {
+        "feature": "text__minilm_364",
+        "cv_mean_importance_norm": 0.0009115402276519673
+      },
+      {
+        "feature": "text__minilm_323",
+        "cv_mean_importance_norm": 0.0009090767046366834
+      },
+      {
+        "feature": "text__minilm_014",
+        "cv_mean_importance_norm": 0.000901876089732258
+      },
+      {
+        "feature": "text__minilm_219",
+        "cv_mean_importance_norm": 0.0008948360022520954
+      },
+      {
+        "feature": "text__minilm_329",
+        "cv_mean_importance_norm": 0.0008928180206041313
+      },
+      {
+        "feature": "text__minilm_138",
+        "cv_mean_importance_norm": 0.0008920649164541178
+      },
+      {
+        "feature": "text__minilm_137",
+        "cv_mean_importance_norm": 0.0008900765515713265
+      },
+      {
+        "feature": "text__minilm_127",
+        "cv_mean_importance_norm": 0.0008832146890607404
+      },
+      {
+        "feature": "text__minilm_182",
+        "cv_mean_importance_norm": 0.0008817193006328973
+      },
+      {
+        "feature": "text__minilm_260",
+        "cv_mean_importance_norm": 0.0008728890591967289
+      },
+      {
+        "feature": "text__minilm_313",
+        "cv_mean_importance_norm": 0.0008717294078672596
+      },
+      {
+        "feature": "text__minilm_159",
+        "cv_mean_importance_norm": 0.0008665777282787805
+      },
+      {
+        "feature": "text__minilm_177",
+        "cv_mean_importance_norm": 0.000866483099643724
+      },
+      {
+        "feature": "text__minilm_244",
+        "cv_mean_importance_norm": 0.0008663248583120441
+      },
+      {
+        "feature": "text__minilm_199",
+        "cv_mean_importance_norm": 0.0008639568539029294
+      },
+      {
+        "feature": "text__minilm_056",
+        "cv_mean_importance_norm": 0.0008546445577812395
+      },
+      {
+        "feature": "text__minilm_176",
+        "cv_mean_importance_norm": 0.0008506670596710126
+      },
+      {
+        "feature": "text__minilm_368",
+        "cv_mean_importance_norm": 0.0008487861087853623
+      },
+      {
+        "feature": "text__minilm_306",
+        "cv_mean_importance_norm": 0.0008487083535538724
+      },
+      {
+        "feature": "text__minilm_372",
+        "cv_mean_importance_norm": 0.0008453165764296952
+      },
+      {
+        "feature": "text__minilm_356",
+        "cv_mean_importance_norm": 0.0008452587468761492
+      },
+      {
+        "feature": "text__minilm_118",
+        "cv_mean_importance_norm": 0.0008334987506229376
+      },
+      {
+        "feature": "text__minilm_268",
+        "cv_mean_importance_norm": 0.0008334748591336831
+      },
+      {
+        "feature": "text__minilm_218",
+        "cv_mean_importance_norm": 0.0008325104414857057
+      },
+      {
+        "feature": "text__minilm_091",
+        "cv_mean_importance_norm": 0.0008304766454177504
+      },
+      {
+        "feature": "text__minilm_257",
+        "cv_mean_importance_norm": 0.0008109041757074491
+      },
+      {
+        "feature": "text__minilm_121",
+        "cv_mean_importance_norm": 0.0008093455668855981
+      },
+      {
+        "feature": "text__minilm_026",
+        "cv_mean_importance_norm": 0.0008030975271275488
+      },
+      {
+        "feature": "text__minilm_294",
+        "cv_mean_importance_norm": 0.0008001521476455689
+      },
+      {
+        "feature": "text__minilm_310",
+        "cv_mean_importance_norm": 0.0007870489801006196
+      },
+      {
+        "feature": "text__minilm_153",
+        "cv_mean_importance_norm": 0.0007866209948562298
+      },
+      {
+        "feature": "text__minilm_155",
+        "cv_mean_importance_norm": 0.0007860640714620565
+      },
+      {
+        "feature": "text__minilm_285",
+        "cv_mean_importance_norm": 0.0007818391843834493
+      },
+      {
+        "feature": "text__minilm_205",
+        "cv_mean_importance_norm": 0.0007808620377878046
+      },
+      {
+        "feature": "text__minilm_109",
+        "cv_mean_importance_norm": 0.0007802885837926889
+      },
+      {
+        "feature": "text__minilm_095",
+        "cv_mean_importance_norm": 0.0007663403226544552
+      },
+      {
+        "feature": "text__minilm_120",
+        "cv_mean_importance_norm": 0.0007640977425763391
+      },
+      {
+        "feature": "text__minilm_291",
+        "cv_mean_importance_norm": 0.0007631810804842353
+      },
+      {
+        "feature": "text__minilm_103",
+        "cv_mean_importance_norm": 0.0007604188126025577
+      },
+      {
+        "feature": "text__minilm_077",
+        "cv_mean_importance_norm": 0.0007589782691285587
+      },
+      {
+        "feature": "text__minilm_333",
+        "cv_mean_importance_norm": 0.0007558808946801171
+      },
+      {
+        "feature": "text__minilm_106",
+        "cv_mean_importance_norm": 0.0007508602735170802
+      },
+      {
+        "feature": "text__minilm_007",
+        "cv_mean_importance_norm": 0.000746675184804475
+      },
+      {
+        "feature": "text__minilm_024",
+        "cv_mean_importance_norm": 0.0007423915932822758
+      },
+      {
+        "feature": "text__minilm_253",
+        "cv_mean_importance_norm": 0.0007385404177433647
+      },
+      {
+        "feature": "text__minilm_094",
+        "cv_mean_importance_norm": 0.0007357473004938189
+      },
+      {
+        "feature": "text__minilm_315",
+        "cv_mean_importance_norm": 0.0007342318322693501
+      },
+      {
+        "feature": "text__minilm_379",
+        "cv_mean_importance_norm": 0.0007336546447518702
+      },
+      {
+        "feature": "text__minilm_173",
+        "cv_mean_importance_norm": 0.0007312775447478467
+      },
+      {
+        "feature": "text__minilm_275",
+        "cv_mean_importance_norm": 0.0007261447298227438
+      },
+      {
+        "feature": "text__minilm_116",
+        "cv_mean_importance_norm": 0.000724974805068869
+      },
+      {
+        "feature": "text__minilm_235",
+        "cv_mean_importance_norm": 0.0007231127224527515
+      },
+      {
+        "feature": "text__minilm_288",
+        "cv_mean_importance_norm": 0.0007228584884424053
+      },
+      {
+        "feature": "text__minilm_305",
+        "cv_mean_importance_norm": 0.0007225701513817613
+      },
+      {
+        "feature": "text__minilm_165",
+        "cv_mean_importance_norm": 0.0007207618843366825
+      },
+      {
+        "feature": "text__minilm_160",
+        "cv_mean_importance_norm": 0.0007175051298700585
+      },
+      {
+        "feature": "text__minilm_289",
+        "cv_mean_importance_norm": 0.0007162441050825379
+      },
+      {
+        "feature": "text__minilm_086",
+        "cv_mean_importance_norm": 0.0007082047317505721
+      },
+      {
+        "feature": "text__minilm_161",
+        "cv_mean_importance_norm": 0.0007067100131190022
+      },
+      {
+        "feature": "text__minilm_069",
+        "cv_mean_importance_norm": 0.0007053218167157517
+      },
+      {
+        "feature": "text__minilm_002",
+        "cv_mean_importance_norm": 0.0007051643604904438
+      },
+      {
+        "feature": "text__minilm_238",
+        "cv_mean_importance_norm": 0.0007010208743384535
+      },
+      {
+        "feature": "text__minilm_209",
+        "cv_mean_importance_norm": 0.0007000546096479267
+      },
+      {
+        "feature": "text__minilm_227",
+        "cv_mean_importance_norm": 0.0006997339583426048
+      },
+      {
+        "feature": "text__minilm_183",
+        "cv_mean_importance_norm": 0.0006893947026797632
+      },
+      {
+        "feature": "text__minilm_064",
+        "cv_mean_importance_norm": 0.0006861199495774427
+      },
+      {
+        "feature": "text__minilm_297",
+        "cv_mean_importance_norm": 0.0006844650205286408
+      },
+      {
+        "feature": "text__minilm_298",
+        "cv_mean_importance_norm": 0.0006619663994964706
+      },
+      {
+        "feature": "text__minilm_237",
+        "cv_mean_importance_norm": 0.0006513325444645575
+      },
+      {
+        "feature": "text__minilm_181",
+        "cv_mean_importance_norm": 0.0006444961299137931
+      },
+      {
+        "feature": "cat__star_sign_雙魚座",
+        "cv_mean_importance_norm": 0.0006409621212576742
+      },
+      {
+        "feature": "text__minilm_156",
+        "cv_mean_importance_norm": 0.0006370832899771227
+      },
+      {
+        "feature": "text__minilm_361",
+        "cv_mean_importance_norm": 0.0006367967467761143
+      },
+      {
+        "feature": "text__minilm_321",
+        "cv_mean_importance_norm": 0.0006284590457694919
+      },
+      {
+        "feature": "text__minilm_376",
+        "cv_mean_importance_norm": 0.0006268923199820059
+      },
+      {
+        "feature": "text__minilm_279",
+        "cv_mean_importance_norm": 0.0006240663533749237
+      },
+      {
+        "feature": "text__minilm_068",
+        "cv_mean_importance_norm": 0.000622375489186236
+      },
+      {
+        "feature": "text__minilm_317",
+        "cv_mean_importance_norm": 0.0006197623464473296
+      },
+      {
+        "feature": "text__minilm_290",
+        "cv_mean_importance_norm": 0.0006055182718541604
+      },
+      {
+        "feature": "text__minilm_365",
+        "cv_mean_importance_norm": 0.0005917427196682576
+      },
+      {
+        "feature": "text__minilm_231",
+        "cv_mean_importance_norm": 0.0005910346251951062
+      },
+      {
+        "feature": "text__minilm_110",
+        "cv_mean_importance_norm": 0.0005886854562672566
+      },
+      {
+        "feature": "text__minilm_276",
+        "cv_mean_importance_norm": 0.0005886664142167214
+      },
+      {
+        "feature": "text__minilm_136",
+        "cv_mean_importance_norm": 0.0005878325173571401
+      },
+      {
+        "feature": "text__minilm_119",
+        "cv_mean_importance_norm": 0.0005869454173771269
+      },
+      {
+        "feature": "text__minilm_383",
+        "cv_mean_importance_norm": 0.0005829573787796554
+      },
+      {
+        "feature": "text__minilm_150",
+        "cv_mean_importance_norm": 0.0005695976693206072
+      },
+      {
+        "feature": "text__minilm_341",
+        "cv_mean_importance_norm": 0.0005625366545095579
+      },
+      {
+        "feature": "text__minilm_052",
+        "cv_mean_importance_norm": 0.0005588100702818234
+      },
+      {
+        "feature": "text__minilm_316",
+        "cv_mean_importance_norm": 0.0005579292061401505
+      },
+      {
+        "feature": "text__minilm_044",
+        "cv_mean_importance_norm": 0.0005536988818309229
+      },
+      {
+        "feature": "text__minilm_005",
+        "cv_mean_importance_norm": 0.0005514073044329863
+      },
+      {
+        "feature": "text__minilm_243",
+        "cv_mean_importance_norm": 0.0005512801949306788
+      },
+      {
+        "feature": "text__minilm_343",
+        "cv_mean_importance_norm": 0.0005479908493845156
+      },
+      {
+        "feature": "text__minilm_010",
+        "cv_mean_importance_norm": 0.0005435621455557769
+      },
+      {
+        "feature": "text__minilm_344",
+        "cv_mean_importance_norm": 0.0005264123007860805
+      },
+      {
+        "feature": "text__minilm_342",
+        "cv_mean_importance_norm": 0.0005143558648307806
+      },
+      {
+        "feature": "text__minilm_130",
+        "cv_mean_importance_norm": 0.0005073111199789665
+      },
+      {
+        "feature": "text__minilm_295",
+        "cv_mean_importance_norm": 0.0004959966647898979
+      },
+      {
+        "feature": "text__minilm_046",
+        "cv_mean_importance_norm": 0.0004908990464807123
+      },
+      {
+        "feature": "text__minilm_039",
+        "cv_mean_importance_norm": 0.00048265647475362225
+      },
+      {
+        "feature": "text__minilm_028",
+        "cv_mean_importance_norm": 0.0004775078892163733
+      },
+      {
+        "feature": "text__minilm_201",
+        "cv_mean_importance_norm": 0.0004726768910921715
+      },
+      {
+        "feature": "text__minilm_220",
+        "cv_mean_importance_norm": 0.0004714622550083929
+      },
+      {
+        "feature": "text__minilm_374",
+        "cv_mean_importance_norm": 0.00046946619514799117
+      },
+      {
+        "feature": "text__minilm_191",
+        "cv_mean_importance_norm": 0.0004674605542313444
+      },
+      {
+        "feature": "text__minilm_029",
+        "cv_mean_importance_norm": 0.00046308579140839435
+      },
+      {
+        "feature": "text__minilm_249",
+        "cv_mean_importance_norm": 0.0004625447756089896
+      },
+      {
+        "feature": "text__minilm_020",
+        "cv_mean_importance_norm": 0.00045846011854574505
+      },
+      {
+        "feature": "text__minilm_190",
+        "cv_mean_importance_norm": 0.00045169711942583064
+      },
+      {
+        "feature": "text__minilm_008",
+        "cv_mean_importance_norm": 0.00044521289501618454
+      },
+      {
+        "feature": "text__minilm_350",
+        "cv_mean_importance_norm": 0.00043854855780895883
+      },
+      {
+        "feature": "text__minilm_246",
+        "cv_mean_importance_norm": 0.00043679216065564826
+      },
+      {
+        "feature": "cat__star_sign_摩羯座",
+        "cv_mean_importance_norm": 0.000418265553099761
+      },
+      {
+        "feature": "text__minilm_084",
+        "cv_mean_importance_norm": 0.0004173702817057361
+      },
+      {
+        "feature": "text__minilm_045",
+        "cv_mean_importance_norm": 0.0004042049696708095
+      },
+      {
+        "feature": "text__minilm_194",
+        "cv_mean_importance_norm": 0.00039876998072772564
+      },
+      {
+        "feature": "text__minilm_065",
+        "cv_mean_importance_norm": 0.0003986859129899801
+      },
+      {
+        "feature": "text__minilm_287",
+        "cv_mean_importance_norm": 0.00039053314859464384
+      },
+      {
+        "feature": "text__minilm_359",
+        "cv_mean_importance_norm": 0.00037670683178244087
+      },
+      {
+        "feature": "text__minilm_054",
+        "cv_mean_importance_norm": 0.0003666411348047926
+      },
+      {
+        "feature": "text__minilm_096",
+        "cv_mean_importance_norm": 0.00036447517802714577
+      },
+      {
+        "feature": "text__minilm_241",
+        "cv_mean_importance_norm": 0.0003587011937612551
+      },
+      {
+        "feature": "text__minilm_200",
+        "cv_mean_importance_norm": 0.0003537405685270094
+      },
+      {
+        "feature": "text__minilm_259",
+        "cv_mean_importance_norm": 0.0003242060794238537
+      },
+      {
+        "feature": "text__minilm_073",
+        "cv_mean_importance_norm": 0.0003214114178300832
+      },
+      {
+        "feature": "text__minilm_152",
+        "cv_mean_importance_norm": 0.0003183321492696736
+      },
+      {
+        "feature": "text__minilm_151",
+        "cv_mean_importance_norm": 0.0003077027408544793
+      },
+      {
+        "feature": "text__minilm_326",
+        "cv_mean_importance_norm": 0.0003011875182829513
+      },
+      {
+        "feature": "text__minilm_338",
+        "cv_mean_importance_norm": 0.00028322956302137623
+      },
+      {
+        "feature": "text__minilm_331",
+        "cv_mean_importance_norm": 0.0002832175369954288
+      },
+      {
+        "feature": "text__minilm_232",
+        "cv_mean_importance_norm": 0.00027504569118465017
+      },
+      {
+        "feature": "text__minilm_033",
+        "cv_mean_importance_norm": 0.00026945857114494566
+      },
+      {
+        "feature": "text__minilm_174",
+        "cv_mean_importance_norm": 0.0002563952723520981
+      },
+      {
+        "feature": "text__minilm_273",
+        "cv_mean_importance_norm": 0.0002533653847025533
+      },
+      {
+        "feature": "text__minilm_105",
+        "cv_mean_importance_norm": 0.00024171774521210897
+      },
+      {
+        "feature": "text__minilm_041",
+        "cv_mean_importance_norm": 0.0002402999505953482
+      },
+      {
+        "feature": "text__minilm_187",
+        "cv_mean_importance_norm": 0.00024028893327418397
+      },
+      {
+        "feature": "text__minilm_226",
+        "cv_mean_importance_norm": 0.000239764463207014
+      },
+      {
+        "feature": "text__minilm_075",
+        "cv_mean_importance_norm": 0.00023429408702681933
+      },
+      {
+        "feature": "text__minilm_038",
+        "cv_mean_importance_norm": 0.0002299326351590975
+      },
+      {
+        "feature": "text__minilm_367",
+        "cv_mean_importance_norm": 0.00022367941698484494
+      },
+      {
+        "feature": "text__minilm_270",
+        "cv_mean_importance_norm": 0.00021987237536873674
+      },
+      {
+        "feature": "cat__star_sign_獅子座",
+        "cv_mean_importance_norm": 0.0002078816186357613
+      },
+      {
+        "feature": "text__minilm_092",
+        "cv_mean_importance_norm": 0.00019166046655086892
+      },
+      {
+        "feature": "text__minilm_354",
+        "cv_mean_importance_norm": 0.00018822725202927217
+      },
+      {
+        "feature": "text__minilm_302",
+        "cv_mean_importance_norm": 0.00017236345799083393
+      },
+      {
+        "feature": "text__minilm_353",
+        "cv_mean_importance_norm": 0.00013978939660807518
+      },
+      {
+        "feature": "text__minilm_037",
+        "cv_mean_importance_norm": 0.00012180247084869499
+      },
+      {
+        "feature": "text__minilm_186",
+        "cv_mean_importance_norm": 0.00011572635234617476
+      },
+      {
+        "feature": "text__minilm_185",
+        "cv_mean_importance_norm": 0.00011209680588672516
+      },
+      {
+        "feature": "text__minilm_101",
+        "cv_mean_importance_norm": 9.305213911067467e-05
+      },
+      {
+        "feature": "text__minilm_274",
+        "cv_mean_importance_norm": 8.492074754605961e-05
+      },
+      {
+        "feature": "text__minilm_216",
+        "cv_mean_importance_norm": 8.438138057937021e-05
+      },
+      {
+        "feature": "text__minilm_318",
+        "cv_mean_importance_norm": 7.9821720213513e-05
+      },
+      {
+        "feature": "cat__star_sign_射手座",
+        "cv_mean_importance_norm": 5.41452667714373e-05
+      },
+      {
+        "feature": "text__minilm_349",
+        "cv_mean_importance_norm": 3.368941862403433e-05
+      },
+      {
+        "feature": "text__minilm_169",
+        "cv_mean_importance_norm": 9.27447923131457e-06
+      },
+      {
+        "feature": "text__minilm_336",
+        "cv_mean_importance_norm": 6.417507686388011e-06
+      },
+      {
+        "feature": "cat__phone_os_JohnCena",
+        "cv_mean_importance_norm": 1.102737783817081e-06
+      },
+      {
+        "feature": "cat__star_sign_巨蟹座",
+        "cv_mean_importance_norm": 0.0
+      },
+      {
+        "feature": "cat__star_sign_金牛座",
+        "cv_mean_importance_norm": 0.0
+      },
+      {
+        "feature": "cat__phone_os_Windows Phone",
+        "cv_mean_importance_norm": 0.0
+      },
+      {
+        "feature": "cat__star_sign_天秤座",
+        "cv_mean_importance_norm": 0.0
+      },
+      {
+        "feature": "cat__star_sign_天蠍座",
+        "cv_mean_importance_norm": 0.0
+      }
+    ]
+  }
+}

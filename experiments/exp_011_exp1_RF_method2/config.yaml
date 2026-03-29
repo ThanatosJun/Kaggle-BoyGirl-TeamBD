@@ -1,0 +1,196 @@
+data:
+  drop_cols:
+  - id
+  - yt
+  - self_intro
+  target_col: gender
+  target_output_mapping:
+    0: 2
+    1: 1
+  target_train_mapping:
+    男: 1
+    女: 0
+    Male: 1
+    Female: 0
+    1: 1
+    2: 0
+    0: 0
+    '1': 1
+    '0': 0
+  test_path: dataset/test.csv
+  train_path: dataset/train.csv
+experiment:
+  description: 'Exp1 RF method2: imputation method2'
+  name: exp1_RF_method2
+features:
+  add_bmi: false
+  add_ponderal_index: false
+  add_weight_height_ratio: false
+  categorical_cols:
+  - star_sign
+  - phone_os
+  numeric_cols:
+  - height
+  - weight
+  - iq
+  numeric_log_cols:
+  - fb_friends
+  ordinal_cols:
+  - sleepiness
+  pca_n_components: 30
+  text_cols: []
+  text_embedding_method: null
+  tfidf_max_features: 100
+  use_pca: false
+model:
+  catboost_params:
+    auto_class_weights: null
+    border_count: 128
+    depth: 8
+    iterations: 500
+    l2_leaf_reg: 3
+    learning_rate: 0.05
+    random_seed: 42
+    verbose: false
+  lgbm_params:
+    bagging_fraction: 0.8
+    bagging_freq: 1
+    feature_fraction: 0.8
+    learning_rate: 0.03
+    max_depth: 5
+    min_child_samples: 30
+    n_estimators: 500
+    num_leaves: 15
+    objective: binary
+    random_state: 42
+    reg_alpha: 0.5
+    reg_lambda: 2.0
+    verbosity: -1
+  param_grid:
+    catboost:
+      depth:
+      - 4
+      - 6
+      - 8
+      l2_leaf_reg:
+      - 1
+      - 3
+      - 5
+      learning_rate:
+      - 0.03
+      - 0.05
+      - 0.1
+    lightgbm:
+      learning_rate:
+      - 0.03
+      - 0.05
+      max_depth:
+      - 4
+      - 5
+      - 6
+      num_leaves:
+      - 15
+      - 31
+    random_forest:
+      max_depth:
+      - 8
+      - 10
+      - 12
+      min_samples_leaf:
+      - 2
+      - 3
+      - 5
+      min_samples_split:
+      - 5
+      - 10
+      n_estimators:
+      - 300
+      - 400
+      - 600
+    xgboost:
+      learning_rate:
+      - 0.03
+      - 0.05
+      - 0.1
+      max_depth:
+      - 4
+      - 6
+      - 8
+  param_grid_quick:
+    catboost:
+      depth:
+      - 4
+      - 6
+      learning_rate:
+      - 0.03
+      - 0.05
+    lightgbm:
+      learning_rate:
+      - 0.03
+      - 0.05
+      max_depth:
+      - 4
+      - 5
+      num_leaves:
+      - 15
+    random_forest:
+      max_depth:
+      - 8
+      - 10
+      min_samples_leaf:
+      - 2
+      - 3
+      min_samples_split:
+      - 5
+      - 10
+      n_estimators:
+      - 300
+      - 400
+    xgboost:
+      learning_rate:
+      - 0.05
+      - 0.1
+      max_depth:
+      - 4
+      - 6
+  random_forest_params:
+    max_depth: 10
+    max_features: sqrt
+    min_samples_leaf: 5
+    min_samples_split: 3
+    n_estimators: 300
+    n_jobs: -1
+    random_state: 42
+  type: random_forest
+  xgb_params:
+    enable_categorical: false
+    eval_metric: logloss
+    learning_rate: 0.1
+    max_depth: 6
+    objective: binary:logistic
+    random_state: 42
+prediction:
+  default_mode: full
+  output_dir: result
+preprocessing:
+  clipping_lower_percentile: 1
+  clipping_upper_percentile: 99
+  imputation_method: method2
+  imputation_mode: old
+  log_clip_min: 0
+  numeric_imputer_strategy: median
+  onehot_handle_unknown: ignore
+  onehot_sparse_output: false
+  scaler: standard
+search:
+  enabled: false
+  metric: f1
+  param_grid_mode: full
+training:
+  class_weight: balanced
+  n_splits: 5
+  random_state: 42
+  save_dir: experiments
+  smote_params:
+    random_state: 42
+  use_smote: false
