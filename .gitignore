@@ -43,9 +43,10 @@ catboost_info/
 # Experiments directory (keep log only)
 # experiments/exp_*/
 !experiments/experiment_log.csv
+kaggle.json
 
 # Submission files
-submission*.csv
+# submission*.csv
 
 # Data files (large datasets)
 # dataset/*.csv
